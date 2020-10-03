@@ -1,7 +1,15 @@
 # Architect
 Architect is a gradle plugin to allow easier multi-modloader set-ups using a common module.
 
-This will only function with mojmap, also known as mojang mappings, as the MCP remapping is half-baked and will only remap classes. `Environment` and `EnvType` will be remapped to `OnlyIn` and `Dist`.
+### Examples
+- [Hardcore Questing Mode](https://github.com/shedaniel/HQM/tree/002b5df265fd26b8df6a3b6b28cbc5bfe76573a6)
+- [Light Overlay](https://github.com/shedaniel/LightOverlay)
+
+### Important Information
+- **This will only function with mojmap**, also known as mojang mappings, as the MCP remapping is half-baked and will only remap classes.
+- `Environment` and `EnvType` are remapped to `OnlyIn` and `Dist`.
+- No mixins in the common module. 
+- You **MUST** run `gradlew build` or `gradlew :common:build` to update the MCP remapped version of `common`, or else the version of common module that the forge module is using will not update.
 
 ### How does it work
 Fabric Side:
@@ -14,7 +22,7 @@ Forge Side:
 - A fake mod is generated, to let forge load it on the correct mod loader and let forge load its assets
 
 ### Usage
-Your gradle version **MUST** be 5.5.1, all `assets` or `data` should go into the common module, with modloader specific files to the corresponding module.
+Your gradle version **MUST** be 5.5.1, all `assets` or `data` should go into the common module, with modloader specific files to their corresponding modules.
 
 settings.gradle
 ```groovy
