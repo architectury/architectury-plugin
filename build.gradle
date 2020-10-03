@@ -43,7 +43,7 @@ compileKotlin {
 gradlePlugin {
     plugins {
         architect {
-            id = 'me.shedaniel.architect-plugin'
+            id = 'architect-plugin'
             implementationClass = 'me.shedaniel.architect.plugin.ArchitectPlugin'
         }
     }
