@@ -76,6 +76,9 @@ bintray {
 publishing {
     publications {
         MyPublication(MavenPublication) {
+            groupId 'architect-plugin'
+            artifactId 'architect-plugin.gradle.plugin'
+            
             from components.java
             artifact(sourcesJar)
         }
