@@ -13,8 +13,8 @@ import net.fabricmc.tinyremapper.TinyRemapper
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
+import org.objectweb.asm.*
+import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -22,6 +22,9 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 import kotlin.collections.LinkedHashSet
 
 
@@ -30,28 +33,62 @@ open class RemapMCPTask : Jar() {
     private val toM: String = "official"
     var fakeMod = false
     val input: RegularFileProperty = GradleSupport.getfileProperty(project)
+    private val environmentClass = "net/fabricmc/api/Environment"
 
     @TaskAction
     fun doTask() {
         val input: Path = this.input.asFile.get().toPath()
+        val intermediate: Path = input.parent.resolve(input.toFile().nameWithoutExtension + "-intermediate.jar")
         val output: Path = this.archiveFile.get().asFile.toPath()
 
+        intermediate.toFile().delete()
         output.toFile().delete()
 
         if (!Files.exists(input)) {
             throw FileNotFoundException(input.toString())
         }
 
+        run {
+            val zipOutputStream = ZipOutputStream(intermediate.toFile().outputStream())
+            zipOutputStream.use {
+                ZipInputStream(Files.newInputStream(input)).use {
+                    while (true) {
+                        val entry = it.nextEntry ?: break
+                        zipOutputStream.putNextEntry(ZipEntry(entry.name))
+                        var allBytes = it.readBytes()
+                        if (entry.name.toString().endsWith(".class")) {
+                            val reader = ClassReader(allBytes)
+                            if ((reader.access and Opcodes.ACC_MODULE) == 0) {
+                                val node = ClassNode(Opcodes.ASM8)
+                                reader.accept(node, ClassReader.EXPAND_FRAMES)
+                                val writer = ClassWriter(0)
+                                transform(node).accept(writer)
+                                allBytes = writer.toByteArray()
+                            }
+                        }
+                        zipOutputStream.write(allBytes)
+                        zipOutputStream.closeEntry()
+                    }
+                }
+            }
+        }
+
         val remapperBuilder: TinyRemapper.Builder = TinyRemapper.newRemapper()
 
         val classpathFiles: Set<File> = LinkedHashSet(
-                project.configurations.getByName("compileClasspath").files
+            project.configurations.getByName("compileClasspath").files
         )
-        val classpath = classpathFiles.asSequence().map { obj: File -> obj.toPath() }.filter { p: Path -> input != p && Files.exists(p) }.toList().toTypedArray()
+        val classpath = classpathFiles.asSequence().map { obj: File -> obj.toPath() }
+            .filter { p: Path -> input != p && Files.exists(p) }.toList().toTypedArray()
 
         val mappings = getMappings()
         val mojmapToMcpClass = createMojmapToMcpClass(mappings)
-        remapperBuilder.withMappings(remapToMcp(TinyRemapperMappingsHelper.create(mappings, fromM, fromM, false), mojmapToMcpClass))
+        remapperBuilder.withMappings(
+            remapToMcp(
+                TinyRemapperMappingsHelper.create(mappings, fromM, fromM, false),
+                mojmapToMcpClass
+            )
+        )
         remapperBuilder.ignoreFieldDesc(true)
         remapperBuilder.skipLocalVariableMapping(true)
 
@@ -64,26 +101,23 @@ open class RemapMCPTask : Jar() {
         if (fakeMod) {
             val modsToml = architectFolder.resolve("META-INF/mods.toml")
             modsToml.parentFile.mkdirs()
-            modsToml.writeText("""
+            modsToml.writeText(
+                """
 modLoader = "javafml"
 loaderVersion = "[33,)"
 license = "Generated"
 [[mods]]
 modId = "$fakeModId"
-        """.trimIndent())
+        """.trimIndent()
+            )
             val mcmeta = architectFolder.resolve("pack.mcmeta")
             mcmeta.parentFile.mkdirs()
-            mcmeta.writeText("""
+            mcmeta.writeText(
+                """
 {"pack":{"description":"Generated","pack_format":4}}
-        """.trimIndent())
+        """.trimIndent()
+            )
         }
-        /*val manifestFile = architectFolder.resolve("META-INF/MANIFEST.MF")
-        manifestFile.parentFile.mkdirs()
-        manifestFile.writeText("""
-Manifest-Version: 1.0
-FMLModType: LIBRARY
-
-        """.trimIndent())*/
 
         val remapper = remapperBuilder.build()
 
@@ -92,7 +126,7 @@ FMLModType: LIBRARY
                 outputConsumer.addNonClassFiles(input, NonClassCopyMode.SKIP_META_INF, null)
                 outputConsumer.addNonClassFiles(architectFolder.toPath(), NonClassCopyMode.UNCHANGED, null)
                 remapper.readClassPath(*classpath)
-                remapper.readInputs(input)
+                remapper.readInputs(intermediate)
                 remapper.apply(outputConsumer)
 
                 if (fakeMod) {
@@ -121,34 +155,46 @@ FMLModType: LIBRARY
         architectFolder.deleteRecursively()
         remapper.finish()
 
+        intermediate.toFile().delete()
+
         if (!Files.exists(output)) {
             throw RuntimeException("Failed to remap $input to $output - file missing!")
         }
     }
 
-    private fun remapToMcp(parent: IMappingProvider, mojmapToMcpClass: Map<String, String>): IMappingProvider = IMappingProvider {
-        it.acceptClass("net/fabricmc/api/Environment", "net/minecraftforge/api/distmarker/OnlyIn")
-        it.acceptClass("net/fabricmc/api/EnvType", "net/minecraftforge/api/distmarker/Dist")
-        it.acceptField(IMappingProvider.Member("net/fabricmc/api/EnvType", "SERVER", "Lnet/fabricmc/api/EnvType;"), "DEDICATED_SERVER")
+    private fun remapToMcp(parent: IMappingProvider, mojmapToMcpClass: Map<String, String>): IMappingProvider =
+        IMappingProvider {
+            it.acceptClass("net/fabricmc/api/Environment", "net/minecraftforge/api/distmarker/OnlyIn")
+            it.acceptClass("net/fabricmc/api/EnvType", "net/minecraftforge/api/distmarker/Dist")
+            it.acceptField(
+                IMappingProvider.Member("net/fabricmc/api/EnvType", "SERVER", "Lnet/fabricmc/api/EnvType;"),
+                "DEDICATED_SERVER"
+            )
 
-        parent.load(object : IMappingProvider.MappingAcceptor {
-            override fun acceptClass(srcName: String?, dstName: String?) {
-                it.acceptClass(srcName, mojmapToMcpClass[srcName] ?: srcName)
-            }
+            parent.load(object : IMappingProvider.MappingAcceptor {
+                override fun acceptClass(srcName: String?, dstName: String?) {
+                    it.acceptClass(srcName, mojmapToMcpClass[srcName] ?: srcName)
+                }
 
-            override fun acceptMethod(method: IMappingProvider.Member?, dstName: String?) {
-            }
+                override fun acceptMethod(method: IMappingProvider.Member?, dstName: String?) {
+                }
 
-            override fun acceptMethodArg(method: IMappingProvider.Member?, lvIndex: Int, dstName: String?) {
-            }
+                override fun acceptMethodArg(method: IMappingProvider.Member?, lvIndex: Int, dstName: String?) {
+                }
 
-            override fun acceptMethodVar(method: IMappingProvider.Member?, lvIndex: Int, startOpIdx: Int, asmIndex: Int, dstName: String?) {
-            }
+                override fun acceptMethodVar(
+                    method: IMappingProvider.Member?,
+                    lvIndex: Int,
+                    startOpIdx: Int,
+                    asmIndex: Int,
+                    dstName: String?
+                ) {
+                }
 
-            override fun acceptField(field: IMappingProvider.Member?, dstName: String?) {
-            }
-        })
-    }
+                override fun acceptField(field: IMappingProvider.Member?, dstName: String?) {
+                }
+            })
+        }
 
     private fun getMappings(): TinyTree {
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
@@ -156,7 +202,7 @@ FMLModType: LIBRARY
     }
 
     private fun getRootExtension(): ArchitectPluginExtension =
-            project.rootProject.extensions.getByType(ArchitectPluginExtension::class.java)
+        project.rootProject.extensions.getByType(ArchitectPluginExtension::class.java)
 
     private fun createMojmapToMcpClass(mappings: TinyTree): Map<String, String> {
         val mcpMappings = readMCPMappings(getRootExtension().minecraft)
@@ -190,5 +236,31 @@ FMLModType: LIBRARY
                 mutableMap[obf] = className
             }
         }
+    }
+
+    private fun transform(node: ClassNode): ClassNode {
+        node.visibleAnnotations = (node.visibleAnnotations ?: mutableListOf()).apply {
+            val invisibleEnvironments =
+                node.invisibleAnnotations?.filter { it.desc == "L${environmentClass};" } ?: emptyList()
+            node.invisibleAnnotations?.removeAll(invisibleEnvironments)
+            addAll(invisibleEnvironments)
+        }
+        node.fields.forEach { field ->
+            field.visibleAnnotations = (field.visibleAnnotations ?: mutableListOf()).apply {
+                val invisibleEnvironments =
+                    field.invisibleAnnotations?.filter { it.desc == "L${environmentClass};" } ?: emptyList()
+                field.invisibleAnnotations?.removeAll(invisibleEnvironments)
+                addAll(invisibleEnvironments)
+            }
+        }
+        node.methods.forEach { method ->
+            method.visibleAnnotations = (method.visibleAnnotations ?: mutableListOf()).apply {
+                val invisibleEnvironments =
+                    method.invisibleAnnotations?.filter { it.desc == "L${environmentClass};" } ?: emptyList()
+                method.invisibleAnnotations?.removeAll(invisibleEnvironments)
+                addAll(invisibleEnvironments)
+            }
+        }
+        return node
     }
 }

@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 package me.shedaniel.architect.plugin
 
 import org.gradle.api.Project
