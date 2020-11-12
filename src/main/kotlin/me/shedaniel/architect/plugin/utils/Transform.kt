@@ -26,7 +26,7 @@ object Transform {
             if ((reader.access and Opcodes.ACC_MODULE) == 0) {
                 val node = ClassNode(Opcodes.ASM8)
                 reader.accept(node, ClassReader.EXPAND_FRAMES)
-                val writer = ClassWriter(0)
+                val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
                 transform(node) { name, bytes ->
                     File(output.toFile().parentFile, "$name.class").also {
                         it.delete()
