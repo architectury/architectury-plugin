@@ -2,8 +2,8 @@
 
 package me.shedaniel.architect.plugin
 
+import me.shedaniel.architect.plugin.utils.GradleSupport
 import net.fabricmc.loom.LoomGradleExtension
-import net.fabricmc.loom.util.GradleSupport
 import net.fabricmc.loom.util.TinyRemapperMappingsHelper
 import net.fabricmc.mapping.tree.TinyTree
 import net.fabricmc.tinyremapper.IMappingProvider
@@ -32,7 +32,7 @@ open class RemapMCPTask : Jar() {
     private val fromM: String = "named"
     private val toM: String = "official"
     var fakeMod = false
-    val input: RegularFileProperty = GradleSupport.getfileProperty(project)
+    val input: RegularFileProperty = GradleSupport.getFileProperty(project)
     private val environmentClass = "net/fabricmc/api/Environment"
 
     @TaskAction
@@ -133,9 +133,9 @@ modId = "$fakeModId"
                     val className = "generated/$fakeModId"
                     val classWriter = ClassWriter(0)
                     classWriter.visit(52, Opcodes.ACC_PUBLIC, className, null, "java/lang/Object", null)
-                    val mixinAnnotation = classWriter.visitAnnotation("Lnet/minecraftforge/fml/common/Mod;", false)
-                    mixinAnnotation.visit("value", fakeModId)
-                    mixinAnnotation.visitEnd()
+                    val modAnnotation = classWriter.visitAnnotation("Lnet/minecraftforge/fml/common/Mod;", false)
+                    modAnnotation.visit("value", fakeModId)
+                    modAnnotation.visitEnd()
                     classWriter.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, arrayOf()).also {
                         it.visitVarInsn(Opcodes.ALOAD, 0)
                         it.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)

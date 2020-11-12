@@ -2,7 +2,7 @@
 Architect is a gradle plugin to allow easier multi-modloader set-ups using a common module.
 
 ### Examples
-- [Hardcore Questing Mode](https://github.com/shedaniel/HQM/tree/002b5df265fd26b8df6a3b6b28cbc5bfe76573a6)
+- [Hardcore Questing Mode](https://github.com/lorddusk/HQM)
 - [Light Overlay](https://github.com/shedaniel/LightOverlay)
 
 ### Important Information
@@ -10,6 +10,9 @@ Architect is a gradle plugin to allow easier multi-modloader set-ups using a com
 - `Environment` and `EnvType` are remapped to `OnlyIn` and `Dist`.
 - No mixins in the common module. 
 - You **MUST** run `gradlew build` or `gradlew :common:build` to update the MCP remapped version of `common`, or else the version of common module that the forge module is using will not update.
+
+### Implementing Platform Specific APIs
+![](https://media.discordapp.net/attachments/586186202781188108/776428814309785620/unknown.png?width=1191&height=439)
 
 ### How does it work
 Fabric Side:

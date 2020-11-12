@@ -7,11 +7,13 @@ import org.gradle.api.plugins.JavaPluginExtension
 
 class ArchitectPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        project.apply(mapOf(
+        project.apply(
+            mapOf(
                 "plugin" to "java",
                 "plugin" to "eclipse",
                 "plugin" to "idea"
-        ))
+            )
+        )
         project.extensions.create("architect", ArchitectPluginExtension::class.java, project)
 
         project.afterEvaluate {
@@ -21,9 +23,17 @@ class ArchitectPlugin : Plugin<Project> {
             }
         }
 
-        project.tasks.register("remapMcp", RemapMCPTask::class.java)
+        project.tasks.register("remapMcp", RemapMCPTask::class.java) {
+            it.group = "Architect"
+        }
+        
         project.tasks.register("remapMcpFakeMod", RemapMCPTask::class.java) {
             it.fakeMod = true
+            it.group = "Architect"
+        }
+
+        project.tasks.register("transformArchitectJar", TransformTask::class.java) {
+            it.group = "Architect"
         }
     }
 }
