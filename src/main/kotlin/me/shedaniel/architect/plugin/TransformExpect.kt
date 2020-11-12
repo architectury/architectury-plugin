@@ -6,6 +6,7 @@ import org.objectweb.asm.tree.*
 import java.lang.invoke.CallSite
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
+import kotlin.math.max
 
 const val expectPlatform = "Lme/shedaniel/architectury/ExpectPlatform;"
 
@@ -61,7 +62,7 @@ fun transformExpectPlatform(): (ClassNode, (String, ByteArray) -> Unit) -> Class
                 )
 
                 method.instructions.addReturn(returnValue.first { it != '[' })
-                method.maxStack = index
+                method.maxStack = max(1, index)
             }
         }
 
