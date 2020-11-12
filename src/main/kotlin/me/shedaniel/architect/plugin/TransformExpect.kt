@@ -61,6 +61,7 @@ fun transformExpectPlatform(): (ClassNode, (String, ByteArray) -> Unit) -> Class
                 )
 
                 method.instructions.addReturn(returnValue.first { it != '[' })
+                method.maxStack = index
             }
         }
 
