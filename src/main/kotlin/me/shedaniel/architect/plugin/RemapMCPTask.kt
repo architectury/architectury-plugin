@@ -15,6 +15,8 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
 import org.objectweb.asm.*
 import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.InsnNode
+import org.objectweb.asm.tree.MethodInsnNode
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -238,7 +240,18 @@ modId = "$fakeModId"
         }
     }
 
+    val forgeEvent = "Lme/shedaniel/architectury/ForgeEvent;"
+
     private fun transform(node: ClassNode): ClassNode {
+        if (node.access and Opcodes.ACC_INTERFACE == 0 && node.visibleAnnotations?.any { it.desc == forgeEvent } == true) {
+            node.superName = "net/minecraftforge/eventbus/api/Event"
+            node.methods.forEach { 
+                if (it.desc.startsWith("<init>(")) {
+                    it.instructions.insert(MethodInsnNode(Opcodes.INVOKESPECIAL, "net/minecraftforge/eventbus/api/Event", "<init>", "()V"))
+                    it.instructions.insert(InsnNode(Opcodes.ALOAD))
+                }
+            }
+        }
         node.visibleAnnotations = (node.visibleAnnotations ?: mutableListOf()).apply {
             val invisibleEnvironments =
                 node.invisibleAnnotations?.filter { it.desc == "L${environmentClass};" } ?: emptyList()

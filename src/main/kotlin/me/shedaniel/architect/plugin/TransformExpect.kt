@@ -6,7 +6,6 @@ import org.objectweb.asm.tree.*
 import java.lang.invoke.CallSite
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
-import kotlin.math.max
 
 const val expectPlatform = "Lme/shedaniel/architectury/ExpectPlatform;"
 
