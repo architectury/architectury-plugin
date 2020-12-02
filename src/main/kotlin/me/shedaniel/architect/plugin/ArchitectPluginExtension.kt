@@ -10,8 +10,14 @@ open class ArchitectPluginExtension(val project: Project) {
     var minecraft = ""
 
     fun common() {
-        project.configurations.create("mcp")
-        project.configurations.create("mcpGenerateMod")
+        common(true)
+    }
+
+    fun common(forgeEnabled: Boolean) {
+        if (forgeEnabled) {
+            project.configurations.create("mcp")
+            project.configurations.create("mcpGenerateMod")
+        }
         project.configurations.create("transformed")
 
         val buildTask = project.tasks.getByName("build")
@@ -41,41 +47,46 @@ open class ArchitectPluginExtension(val project: Project) {
             it.mustRunAfter(transformArchitectJarTask)
         } as RemapJarTask
 
-        val remapMCPTask = project.tasks.getByName("remapMcp") {
-            it as RemapMCPTask
+        if (forgeEnabled) {
+            val remapMCPTask = project.tasks.getByName("remapMcp") {
+                it as RemapMCPTask
 
-            it.input.set(transformArchitectJarTask.archiveFile.get())
-            it.archiveClassifier.set("mcp")
-            it.dependsOn(transformArchitectJarTask)
-            buildTask.dependsOn(it)
-            it.outputs.upToDateWhen { false }
-        } as RemapMCPTask
+                it.input.set(transformArchitectJarTask.archiveFile.get())
+                it.archiveClassifier.set("mcp")
+                it.dependsOn(transformArchitectJarTask)
+                buildTask.dependsOn(it)
+                it.outputs.upToDateWhen { false }
+            } as RemapMCPTask
 
-        val remapMCPFakeModTask = project.tasks.getByName("remapMcpFakeMod") {
-            it as RemapMCPTask
+            val remapMCPFakeModTask = project.tasks.getByName("remapMcpFakeMod") {
+                it as RemapMCPTask
 
-            it.input.set(transformArchitectJarTask.archiveFile.get())
-            it.archiveClassifier.set("mcpGenerateMod")
-            it.dependsOn(transformArchitectJarTask)
-            buildTask.dependsOn(it)
-            it.outputs.upToDateWhen { false }
-        } as RemapMCPTask
+                it.input.set(transformArchitectJarTask.archiveFile.get())
+                it.archiveClassifier.set("mcpGenerateMod")
+                it.dependsOn(transformArchitectJarTask)
+                buildTask.dependsOn(it)
+                it.outputs.upToDateWhen { false }
+            } as RemapMCPTask
+
+            project.artifacts {
+                it.add(
+                    "mcp", mapOf(
+                        "file" to remapMCPTask.archiveFile.get().asFile,
+                        "type" to "jar",
+                        "builtBy" to remapMCPTask
+                    )
+                )
+                it.add(
+                    "mcpGenerateMod", mapOf(
+                        "file" to remapMCPFakeModTask.archiveFile.get().asFile,
+                        "type" to "jar",
+                        "builtBy" to remapMCPFakeModTask
+                    )
+                )
+            }
+        }
 
         project.artifacts {
-            it.add(
-                "mcp", mapOf(
-                    "file" to remapMCPTask.archiveFile.get().asFile,
-                    "type" to "jar",
-                    "builtBy" to remapMCPTask
-                )
-            )
-            it.add(
-                "mcpGenerateMod", mapOf(
-                    "file" to remapMCPFakeModTask.archiveFile.get().asFile,
-                    "type" to "jar",
-                    "builtBy" to remapMCPFakeModTask
-                )
-            )
             it.add(
                 "transformed", mapOf(
                     "file" to transformArchitectJarTask.archiveFile.get().asFile,
