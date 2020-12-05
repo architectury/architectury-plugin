@@ -32,7 +32,10 @@ fun transformExpectPlatform(): (ClassNode, (String, ByteArray) -> Unit) -> Class
                     } else when (char) {
                         '[' -> Unit
                         'L' -> inClass = true
-                        else -> method.instructions.addLoad(char, index++)
+                        else -> method.instructions.addLoad(char, when (char) {
+                            'J', 'D' -> index.also { index += 2 }
+                            else -> index++
+                        })
                     }
                     cursor++
                 }
