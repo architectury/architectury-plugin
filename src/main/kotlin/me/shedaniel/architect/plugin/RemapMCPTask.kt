@@ -34,6 +34,7 @@ import kotlin.collections.LinkedHashSet
 open class RemapMCPTask : Jar() {
     private val fromM: String = "named"
     private val toM: String = "official"
+    var remapMcp = true
     var fakeMod = false
     val input: RegularFileProperty = GradleSupport.getFileProperty(project)
     private val environmentClass = "net/fabricmc/api/Environment"
@@ -76,7 +77,6 @@ open class RemapMCPTask : Jar() {
             }
         }
 
-        val remapperBuilder: TinyRemapper.Builder = TinyRemapper.newRemapper()
 
         val classpathFiles: Set<File> = LinkedHashSet(
             project.configurations.getByName("compileClasspath").files
@@ -84,16 +84,21 @@ open class RemapMCPTask : Jar() {
         val classpath = classpathFiles.asSequence().map { obj: File -> obj.toPath() }
             .filter { p: Path -> input != p && Files.exists(p) }.toList().toTypedArray()
 
-        val mappings = getMappings()
-        val mojmapToMcpClass = createMojmapToMcpClass(mappings)
-        remapperBuilder.withMappings(
-            remapToMcp(
-                TinyRemapperMappingsHelper.create(mappings, fromM, fromM, false),
-                mojmapToMcpClass
+        val remapperBuilder: TinyRemapper.Builder = TinyRemapper.newRemapper()
+        if (remapMcp) {
+            val mappings = getMappings()
+            val mojmapToMcpClass: Map<String, String> = createMojmapToMcpClass(mappings)
+            remapperBuilder.withMappings(
+                remapToMcp(
+                    TinyRemapperMappingsHelper.create(mappings, fromM, fromM, false),
+                    mojmapToMcpClass
+                )
             )
-        )
-        remapperBuilder.ignoreFieldDesc(true)
-        remapperBuilder.skipLocalVariableMapping(true)
+            remapperBuilder.skipLocalVariableMapping(true)
+        } else {
+            remapperBuilder.withMappings(remapToMcp(null, null))
+            remapperBuilder.skipLocalVariableMapping(true)
+        }
 
         project.logger.lifecycle(":remapping " + input.fileName)
 
@@ -165,7 +170,7 @@ modId = "$fakeModId"
         }
     }
 
-    private fun remapToMcp(parent: IMappingProvider, mojmapToMcpClass: Map<String, String>): IMappingProvider =
+    private fun remapToMcp(parent: IMappingProvider?, mojmapToMcpClass: Map<String, String>?): IMappingProvider =
         IMappingProvider {
             it.acceptClass("net/fabricmc/api/Environment", "net/minecraftforge/api/distmarker/OnlyIn")
             it.acceptClass("net/fabricmc/api/EnvType", "net/minecraftforge/api/distmarker/Dist")
@@ -174,9 +179,9 @@ modId = "$fakeModId"
                 "DEDICATED_SERVER"
             )
 
-            parent.load(object : IMappingProvider.MappingAcceptor {
+            parent?.load(object : IMappingProvider.MappingAcceptor {
                 override fun acceptClass(srcName: String?, dstName: String?) {
-                    it.acceptClass(srcName, mojmapToMcpClass[srcName] ?: srcName)
+                    it.acceptClass(srcName, mojmapToMcpClass!![srcName] ?: srcName)
                 }
 
                 override fun acceptMethod(method: IMappingProvider.Member?, dstName: String?) {
@@ -259,7 +264,7 @@ modId = "$fakeModId"
                     }
                 }
             }
-            node.signature?.let { 
+            node.signature?.let {
                 node.signature = it.substringBeforeLast('L') + "Lnet/minecraftforge/eventbus/api/Event;"
             }
         }
