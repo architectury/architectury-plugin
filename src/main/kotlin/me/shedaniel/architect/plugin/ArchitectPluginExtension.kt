@@ -2,6 +2,7 @@
 
 package me.shedaniel.architect.plugin
 
+import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.task.RemapJarTask
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
@@ -11,6 +12,12 @@ open class ArchitectPluginExtension(val project: Project) {
 
     fun common() {
         common(true)
+    }
+
+    fun platformSetupLoomIde(toBuildProject: String) {
+        val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
+        loomExtension.autoGenIDERuns = true
+        loomExtension.addTaskBeforeRun("\$PROJECT_DIR\$/$toBuildProject:build")
     }
 
     fun common(forgeEnabled: Boolean) {
@@ -79,7 +86,7 @@ open class ArchitectPluginExtension(val project: Project) {
                 buildTask.dependsOn(it)
                 it.outputs.upToDateWhen { false }
             } as RemapMCPTask
-            
+
             val transformForgeFakeModTask = project.tasks.getByName("transformForgeFakeMod") {
                 it as RemapMCPTask
 

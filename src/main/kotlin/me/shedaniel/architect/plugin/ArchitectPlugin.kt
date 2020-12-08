@@ -16,6 +16,7 @@ class ArchitectPlugin : Plugin<Project> {
             )
         )
         project.extensions.create("architect", ArchitectPluginExtension::class.java, project)
+        project.extensions.add("architectury", project.extensions.getByName("architect"))
 
         project.afterEvaluate {
             project.extensions.getByType(JavaPluginExtension::class.java).apply {
