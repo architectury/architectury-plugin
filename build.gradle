@@ -20,7 +20,6 @@ repositories {
     maven { url "https://maven.fabricmc.net/" }
     maven { url "https://files.minecraftforge.net/maven/" }
     maven { url "https://dl.bintray.com/shedaniel/cloth/" }
-    mavenLocal()
 }
 
 apply plugin: 'java-gradle-plugin'
