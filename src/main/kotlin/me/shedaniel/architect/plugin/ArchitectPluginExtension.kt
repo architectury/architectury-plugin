@@ -17,7 +17,7 @@ open class ArchitectPluginExtension(val project: Project) {
     fun platformSetupLoomIde() {
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
         loomExtension.autoGenIDERuns = true
-        loomExtension.addTaskBeforeRun("\$PROJECT_DIR\$/${project.path}:build")
+        loomExtension.addTaskBeforeRun("\$PROJECT_DIR\$/${project.name}:build")
     }
 
     fun common(forgeEnabled: Boolean) {
