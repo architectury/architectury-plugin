@@ -1,5 +1,6 @@
 package me.shedaniel.architect.plugin
 
+import net.fabricmc.loom.util.LoggerFilter
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -8,6 +9,8 @@ import java.net.URI
 
 class ArchitectPlugin : Plugin<Project> {
     override fun apply(project: Project) {
+        LoggerFilter.replaceSystemOut()
+
         project.apply(
             mapOf(
                 "plugin" to "java",
@@ -15,6 +18,7 @@ class ArchitectPlugin : Plugin<Project> {
                 "plugin" to "idea"
             )
         )
+
         project.extensions.create("architect", ArchitectPluginExtension::class.java, project)
         project.extensions.add("architectury", project.extensions.getByName("architect"))
 
@@ -23,8 +27,6 @@ class ArchitectPlugin : Plugin<Project> {
                 sourceCompatibility = JavaVersion.VERSION_1_8
                 targetCompatibility = JavaVersion.VERSION_1_8
             }
-
-            project.dependencies.add("compileOnly", "org.jetbrains:annotations:19.0.0")
         }
 
         project.tasks.register("remapMcp", RemapMCPTask::class.java) {

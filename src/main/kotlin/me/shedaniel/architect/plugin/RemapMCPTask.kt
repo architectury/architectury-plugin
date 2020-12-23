@@ -4,6 +4,7 @@ package me.shedaniel.architect.plugin
 
 import me.shedaniel.architect.plugin.utils.GradleSupport
 import net.fabricmc.loom.LoomGradleExtension
+import net.fabricmc.loom.util.LoggerFilter
 import net.fabricmc.loom.util.TinyRemapperMappingsHelper
 import net.fabricmc.mapping.tree.TinyTree
 import net.fabricmc.tinyremapper.IMappingProvider
@@ -30,7 +31,6 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.collections.LinkedHashSet
 
-
 open class RemapMCPTask : Jar() {
     private val fromM: String = "named"
     private val toM: String = "official"
@@ -41,6 +41,7 @@ open class RemapMCPTask : Jar() {
 
     @TaskAction
     fun doTask() {
+        LoggerFilter.replaceSystemOut()
         val input: Path = this.input.asFile.get().toPath()
         val intermediate: Path = input.parent.resolve(input.toFile().nameWithoutExtension + "-intermediate.jar")
         val output: Path = this.archiveFile.get().asFile.toPath()
@@ -171,17 +172,17 @@ modId = "$fakeModId"
     }
 
     private fun remapToMcp(parent: IMappingProvider?, mojmapToMcpClass: Map<String, String>?): IMappingProvider =
-        IMappingProvider {
-            it.acceptClass("net/fabricmc/api/Environment", "net/minecraftforge/api/distmarker/OnlyIn")
-            it.acceptClass("net/fabricmc/api/EnvType", "net/minecraftforge/api/distmarker/Dist")
-            it.acceptField(
+        IMappingProvider { out ->
+            out.acceptClass("net/fabricmc/api/Environment", "net/minecraftforge/api/distmarker/OnlyIn")
+            out.acceptClass("net/fabricmc/api/EnvType", "net/minecraftforge/api/distmarker/Dist")
+            out.acceptField(
                 IMappingProvider.Member("net/fabricmc/api/EnvType", "SERVER", "Lnet/fabricmc/api/EnvType;"),
                 "DEDICATED_SERVER"
             )
 
             parent?.load(object : IMappingProvider.MappingAcceptor {
                 override fun acceptClass(srcName: String?, dstName: String?) {
-                    it.acceptClass(srcName, mojmapToMcpClass!![srcName] ?: srcName)
+                    out.acceptClass(srcName, mojmapToMcpClass!![srcName] ?: srcName)
                 }
 
                 override fun acceptMethod(method: IMappingProvider.Member?, dstName: String?) {
