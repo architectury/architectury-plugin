@@ -17,6 +17,7 @@ import org.gradle.jvm.tasks.Jar
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.AnnotationNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 import java.io.File
@@ -248,25 +249,36 @@ modId = "$fakeModId"
     }
 
     val forgeEvent = "Lme/shedaniel/architectury/ForgeEvent;"
+    val forgeEventCancellable = "Lme/shedaniel/architectury/ForgeEventCancellable;"
+
+    val cancellable = "Lnet/minecraftforge/eventbus/api/Cancelable;"
 
     private fun transform(node: ClassNode): ClassNode {
-        if (node.access and Opcodes.ACC_INTERFACE == 0 && node.visibleAnnotations?.any { it.desc == forgeEvent } == true) {
-            node.superName = "net/minecraftforge/eventbus/api/Event"
-            node.methods.forEach {
-                if (it.name == "<init>") {
-                    for (insnNode in it.instructions) {
-                        if (insnNode.opcode == Opcodes.INVOKESPECIAL) {
-                            insnNode as MethodInsnNode
-                            if (insnNode.name == "<init>" && insnNode.owner == "java/lang/Object") {
-                                insnNode.owner = "net/minecraftforge/eventbus/api/Event"
-                                break
+        if(node.access and Opcodes.ACC_INTERFACE == 0) {
+            if(node.visibleAnnotations?.any { it.desc == forgeEvent || it.desc == forgeEventCancellable} == true) {
+                node.superName = "net/minecraftforge/eventbus/api/Event"
+                node.methods.forEach {
+                    if (it.name == "<init>") {
+                        for (insnNode in it.instructions) {
+                            if (insnNode.opcode == Opcodes.INVOKESPECIAL) {
+                                insnNode as MethodInsnNode
+                                if (insnNode.name == "<init>" && insnNode.owner == "java/lang/Object") {
+                                    insnNode.owner = "net/minecraftforge/eventbus/api/Event"
+                                    break
+                                }
                             }
                         }
                     }
                 }
-            }
-            node.signature?.let {
-                node.signature = it.substringBeforeLast('L') + "Lnet/minecraftforge/eventbus/api/Event;"
+                node.signature?.let {
+                    node.signature = it.substringBeforeLast('L') + "Lnet/minecraftforge/eventbus/api/Event;"
+                }
+                // if @ForgeEventCancellable, add the cancellable annotation from forge
+                node.visibleAnnotations.apply {
+                    if(any {it.desc == forgeEventCancellable}) {
+                        add(AnnotationNode(cancellable))
+                    }
+                }
             }
         }
         node.visibleAnnotations = (node.visibleAnnotations ?: mutableListOf()).apply {
