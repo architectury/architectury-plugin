@@ -187,7 +187,7 @@ modId = "$fakeModId"
     private fun fixMixins(output: File) {
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
         val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
-        val mixinConfigs = mutableMapOf<String, JsonObject>()
+        val mixinConfigs = mutableListOf<String>()
         val refmap = loomExtension.getRefmapName()
         ZipUtil.iterate(output) { stream, entry ->
             if (!entry.isDirectory && entry.name.endsWith(".json") &&
@@ -201,9 +201,7 @@ modId = "$fakeModId"
                             val hasClient = json.has("client") && json["client"].isJsonArray
                             val hasServer = json.has("server") && json["server"].isJsonArray
                             if (json.has("package") && (hasMixins || hasClient || hasServer)) {
-                                mixinConfigs[entry.name] = json.deepCopy().also {
-                                    it.addProperty("refmap", refmap)
-                                }
+                                mixinConfigs.add(entry.name)
                             }
                         }
                     }
@@ -211,14 +209,11 @@ modId = "$fakeModId"
                 }
             }
         }
-        ZipUtil.replaceEntries(output, mixinConfigs.entries.map { (path, obj) ->
-            ByteSource(path, gson.toJson(obj).toByteArray())
-        }.toTypedArray())
         if (mixinConfigs.isNotEmpty()) {
             if (ZipUtil.containsEntry(output, "META-INF/MANIFEST.MF")) {
                 ZipUtil.transformEntry(output, "META-INF/MANIFEST.MF") { input, zipEntry, out ->
                     val manifest = Manifest(input)
-                    manifest.mainAttributes.putValue("MixinConfigs", mixinConfigs.keys.joinToString(","))
+                    manifest.mainAttributes.putValue("MixinConfigs", mixinConfigs.joinToString(","))
                     out.putNextEntry(ZipEntry(zipEntry.name))
                     manifest.write(out)
                     out.closeEntry()
