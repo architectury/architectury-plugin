@@ -57,31 +57,11 @@ open class ArchitectPluginExtension(val project: Project) {
         } as RemapJarTask
 
         if (forgeEnabled) {
-            val remapMCPTask = project.tasks.getByName("remapMcp") {
-                it as RemapMCPTask
-
-                it.input.set(transformArchitectJarTask.archiveFile.get())
-                it.archiveClassifier.set("mcp")
-                it.dependsOn(transformArchitectJarTask)
-                buildTask.dependsOn(it)
-                it.outputs.upToDateWhen { false }
-            } as RemapMCPTask
-
-            val remapMCPFakeModTask = project.tasks.getByName("remapMcpFakeMod") {
-                it as RemapMCPTask
-
-                it.input.set(transformArchitectJarTask.archiveFile.get())
-                it.archiveClassifier.set("mcpGenerateMod")
-                it.dependsOn(transformArchitectJarTask)
-                buildTask.dependsOn(it)
-                it.outputs.upToDateWhen { false }
-            } as RemapMCPTask
-
             val transformForgeTask = project.tasks.getByName("transformForge") {
                 it as RemapMCPTask
 
                 it.input.set(transformArchitectJarTask.archiveFile.get())
-                it.archiveClassifier.set("transformForge")
+                it.archiveClassifier.set("transformedForge")
                 it.dependsOn(transformArchitectJarTask)
                 buildTask.dependsOn(it)
                 it.outputs.upToDateWhen { false }
@@ -91,27 +71,13 @@ open class ArchitectPluginExtension(val project: Project) {
                 it as RemapMCPTask
 
                 it.input.set(transformArchitectJarTask.archiveFile.get())
-                it.archiveClassifier.set("transformForgeFakeMod")
+                it.archiveClassifier.set("transformedForgeFakeMod")
                 it.dependsOn(transformArchitectJarTask)
                 buildTask.dependsOn(it)
                 it.outputs.upToDateWhen { false }
             } as RemapMCPTask
 
             project.artifacts {
-                it.add(
-                    "mcp", mapOf(
-                        "file" to remapMCPTask.archiveFile.get().asFile,
-                        "type" to "jar",
-                        "builtBy" to remapMCPTask
-                    )
-                )
-                it.add(
-                    "mcpGenerateMod", mapOf(
-                        "file" to remapMCPFakeModTask.archiveFile.get().asFile,
-                        "type" to "jar",
-                        "builtBy" to remapMCPFakeModTask
-                    )
-                )
                 it.add(
                     "transformForge", mapOf(
                         "file" to transformForgeTask.archiveFile.get().asFile,
@@ -127,6 +93,8 @@ open class ArchitectPluginExtension(val project: Project) {
                     )
                 )
             }
+
+            project.extensions.getByType(LoomGradleExtension::class.java).generateSrgTiny = true
         }
 
         project.artifacts {

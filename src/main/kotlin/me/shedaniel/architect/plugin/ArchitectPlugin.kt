@@ -29,16 +29,8 @@ class ArchitectPlugin : Plugin<Project> {
             }
         }
 
-        project.tasks.register("remapMcp", RemapMCPTask::class.java) {
-            it.group = "Architect"
-        }
-
-        project.tasks.register("remapMcpFakeMod", RemapMCPTask::class.java) {
-            it.fakeMod = true
-            it.group = "Architect"
-        }
-
         project.tasks.register("transformForge", RemapMCPTask::class.java) {
+            it.fakeMod = false
             it.remapMcp = false
             it.group = "Architect"
         }
