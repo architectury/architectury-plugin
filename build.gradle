@@ -11,7 +11,7 @@ plugins {
 group "me.shedaniel"
 version = "1.2." + (System.getenv("GITHUB_RUN_NUMBER") == null ? (((short) new Random().nextInt()).abs() + 1000).toString() : System.getenv("GITHUB_RUN_NUMBER"))
 
-logger.lifecycle(":building architect plugin v${version}")
+logger.lifecycle(":building architectury plugin v${version}")
 
 sourceCompatibility = targetCompatibility = 1.8
 
@@ -49,7 +49,7 @@ compileKotlin {
 gradlePlugin {
     plugins {
         architect {
-            id = 'architect-plugin'
+            id = 'architectury-plugin'
             implementationClass = 'me.shedaniel.architect.plugin.ArchitectPlugin'
         }
     }
@@ -82,8 +82,8 @@ bintray {
 publishing {
     publications {
         MyPublication(MavenPublication) {
-            groupId 'architect-plugin'
-            artifactId 'architect-plugin.gradle.plugin'
+            groupId 'architectury-plugin'
+            artifactId 'architectury-plugin.gradle.plugin'
             
             from components.java
             artifact(sourcesJar)
