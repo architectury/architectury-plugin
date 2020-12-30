@@ -23,7 +23,6 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.AnnotationNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
-import org.zeroturnaround.zip.ByteSource
 import org.zeroturnaround.zip.ZipUtil
 import java.io.*
 import java.net.URL

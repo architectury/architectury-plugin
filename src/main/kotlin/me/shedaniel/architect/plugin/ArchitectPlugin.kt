@@ -44,6 +44,11 @@ class ArchitectPlugin : Plugin<Project> {
         project.tasks.register("transformArchitectJar", TransformTask::class.java) {
             it.group = "Architectury"
         }
+        
+        project.tasks.register("transformArchitectJarRuntime", TransformTask::class.java) {
+            it.group = "Architectury"
+            it.addRefmap = false
+        }
 
         project.repositories.apply {
             mavenCentral()

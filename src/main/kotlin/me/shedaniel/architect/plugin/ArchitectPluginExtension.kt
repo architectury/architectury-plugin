@@ -28,6 +28,7 @@ open class ArchitectPluginExtension(val project: Project) {
             project.configurations.create("transformForgeFakeMod")
         }
         project.configurations.create("transformed")
+        project.configurations.create("transformedRuntime")
 
         val buildTask = project.tasks.getByName("build")
         val jarTask = project.tasks.getByName("jar") {
@@ -39,6 +40,17 @@ open class ArchitectPluginExtension(val project: Project) {
             it as TransformTask
 
             it.archiveClassifier.set("transformed")
+            it.input.set(jarTask.archiveFile.get())
+
+            project.artifacts.add("archives", it)
+            it.dependsOn(jarTask)
+            buildTask.dependsOn(it)
+            it.outputs.upToDateWhen { false }
+        } as TransformTask  
+        val transformArchitectRuntimeJarTask = project.tasks.getByName("transformArchitectJarRuntime") {
+            it as TransformTask
+
+            it.archiveClassifier.set("transformedRuntime")
             it.input.set(jarTask.archiveFile.get())
 
             project.artifacts.add("archives", it)
@@ -70,9 +82,9 @@ open class ArchitectPluginExtension(val project: Project) {
             val transformForgeFakeModTask = project.tasks.getByName("transformForgeFakeMod") {
                 it as RemapMCPTask
 
-                it.input.set(transformArchitectJarTask.archiveFile.get())
+                it.input.set(transformArchitectRuntimeJarTask.archiveFile.get())
                 it.archiveClassifier.set("transformedForgeFakeMod")
-                it.dependsOn(transformArchitectJarTask)
+                it.dependsOn(transformArchitectRuntimeJarTask)
                 buildTask.dependsOn(it)
                 it.outputs.upToDateWhen { false }
             } as RemapMCPTask
@@ -103,6 +115,13 @@ open class ArchitectPluginExtension(val project: Project) {
                     "file" to transformArchitectJarTask.archiveFile.get().asFile,
                     "type" to "jar",
                     "builtBy" to transformArchitectJarTask
+                )
+            )
+            it.add(
+                "transformedRuntime", mapOf(
+                    "file" to transformArchitectRuntimeJarTask.archiveFile.get().asFile,
+                    "type" to "jar",
+                    "builtBy" to transformArchitectRuntimeJarTask
                 )
             )
         }

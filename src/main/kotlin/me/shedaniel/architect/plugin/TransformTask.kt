@@ -13,6 +13,7 @@ import java.nio.file.Path
 
 open class TransformTask : Jar() {
     val input: RegularFileProperty = GradleSupport.getFileProperty(project)
+    var addRefmap = true
 
     @TaskAction
     fun doTask() {
@@ -22,9 +23,16 @@ open class TransformTask : Jar() {
         project.logger.lifecycle(":transforming " + input.fileName + " => " + output.fileName)
         Transform.transform(input, output, transformExpectPlatform())
 
-        val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
-        if (MixinRefmapHelper.addRefmapName(loomExtension.getRefmapName(), loomExtension.mixinJsonVersion, output)) {
-            project.logger.debug("Transformed mixin reference maps in output JAR!")
+        if (addRefmap) {
+            val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
+            if (MixinRefmapHelper.addRefmapName(
+                    loomExtension.getRefmapName(),
+                    loomExtension.mixinJsonVersion,
+                    output
+                )
+            ) {
+                project.logger.debug("Transformed mixin reference maps in output JAR!")
+            }
         }
     }
 }
