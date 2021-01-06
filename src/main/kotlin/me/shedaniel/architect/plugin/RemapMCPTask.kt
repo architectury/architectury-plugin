@@ -26,6 +26,8 @@ import org.objectweb.asm.tree.MethodInsnNode
 import org.zeroturnaround.zip.ZipUtil
 import java.io.*
 import java.net.URL
+import java.nio.file.FileSystemAlreadyExistsException
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -246,6 +248,7 @@ modId = "$fakeModId"
     private fun remapRefmap(obj: JsonObject) {
         val srg = project.extensions.getByType(LoomGradleExtension::class.java).mappingsProvider.mappingsWithSrg
         val methodPattern = "L(.*);(.*)(\\(.*)".toRegex()
+        val methodPatternWithoutClass = "(.*)(\\(.*)".toRegex()
         val fieldPattern = "(.*):(.*)".toRegex()
 
         obj.keySet().forEach { key ->
@@ -253,6 +256,7 @@ modId = "$fakeModId"
 
             val methodMatch = methodPattern.matchEntire(originalRef)
             val fieldMatch = fieldPattern.matchEntire(originalRef)
+            val methodMatchWithoutClass = methodPatternWithoutClass.matchEntire(originalRef)
 
             when {
                 methodMatch != null -> {
@@ -286,6 +290,21 @@ modId = "$fakeModId"
                         key, originalRef
                             .replaceFirst(fieldMatch.groups[1]!!.value, replacementName)
                             .replaceFirst(fieldMatch.groups[2]!!.value, fieldMatch.groups[2]!!.value.remapDescriptor {
+                                srg.classes.firstOrNull { def -> def.getName("intermediary") == it }?.getName("srg")
+                                    ?: it
+                            })
+                    )
+                }
+                methodMatchWithoutClass != null -> {
+                    val replacementName: String = srg.classes.asSequence()
+                        .flatMap { it.methods.asSequence() }
+                        .filter { it.getName("intermediary") == methodMatchWithoutClass.groups[1]!!.value }
+                        .firstOrNull { it.getDescriptor("intermediary") == methodMatchWithoutClass.groups[2]!!.value }
+                        ?.getName("srg") ?: methodMatchWithoutClass.groups[1]!!.value
+                    obj.addProperty(
+                        key, originalRef
+                            .replaceFirst(methodMatchWithoutClass.groups[1]!!.value, replacementName)
+                            .replaceFirst(methodMatchWithoutClass.groups[2]!!.value, methodMatchWithoutClass.groups[2]!!.value.remapDescriptor {
                                 srg.classes.firstOrNull { def -> def.getName("intermediary") == it }?.getName("srg")
                                     ?: it
                             })
