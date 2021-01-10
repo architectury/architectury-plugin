@@ -51,7 +51,6 @@ open class TransformTask : Jar() {
                 input != p && Files.exists(p)
             }.toList().toTypedArray()
 
-            println("Failed to remap $input to $intermediate")
             LoggerFilter.replaceSystemOut()
             try {
                 OutputConsumerPath.Builder(intermediate).build().use { outputConsumer ->
