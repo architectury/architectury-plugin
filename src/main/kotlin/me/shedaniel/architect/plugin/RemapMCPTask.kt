@@ -10,10 +10,7 @@ import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.util.LoggerFilter
 import net.fabricmc.loom.util.TinyRemapperMappingsHelper
 import net.fabricmc.mapping.tree.TinyTree
-import net.fabricmc.tinyremapper.IMappingProvider
-import net.fabricmc.tinyremapper.NonClassCopyMode
-import net.fabricmc.tinyremapper.OutputConsumerPath
-import net.fabricmc.tinyremapper.TinyRemapper
+import net.fabricmc.tinyremapper.*
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
@@ -26,8 +23,6 @@ import org.objectweb.asm.tree.MethodInsnNode
 import org.zeroturnaround.zip.ZipUtil
 import java.io.*
 import java.net.URL
-import java.nio.file.FileSystemAlreadyExistsException
-import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -106,6 +101,8 @@ open class RemapMCPTask : Jar() {
             remapperBuilder.skipLocalVariableMapping(true)
         }
 
+        mapMixin(remapperBuilder)
+
         project.logger.lifecycle(
             ":${
                 listOfNotNull(
@@ -182,6 +179,55 @@ modId = "$fakeModId"
 
         if (!Files.exists(output)) {
             throw RuntimeException("Failed to remap $input to $output - file missing!")
+        }
+    }
+
+    private fun mapMixin(remapperBuilder: TinyRemapper.Builder) {
+        val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
+        val srg = project.extensions.getByType(LoomGradleExtension::class.java).mappingsProvider.mappingsWithSrg
+        for (mixinMapFile in loomExtension.allMixinMappings) {
+            if (mixinMapFile.exists()) {
+                remapperBuilder.withMappings { sink ->
+                    TinyUtils.createTinyMappingProvider(mixinMapFile.toPath(), "named", "intermediary").load(object :
+                        IMappingProvider.MappingAcceptor {
+                        override fun acceptClass(srcName: String, dstName: String) {
+                            sink.acceptClass(dstName, srg.classes
+                                .firstOrNull { it.getName("intermediary") == dstName }
+                                ?.getName("srg") ?: dstName
+                            )
+                        }
+
+                        override fun acceptMethod(method: IMappingProvider.Member, dstName: String) {
+                            sink.acceptMethod(
+                                IMappingProvider.Member(method.owner, dstName, method.desc),
+                                srg.classes
+                                    .flatMap { it.methods }
+                                    .firstOrNull { it.getName("intermediary") == dstName }
+                                    ?.getName("srg") ?: dstName)
+                        }
+
+                        override fun acceptField(field: IMappingProvider.Member, dstName: String) {
+                            sink.acceptField(
+                                IMappingProvider.Member(field.owner, dstName, field.desc),
+                                srg.classes
+                                    .flatMap { it.fields }
+                                    .firstOrNull { it.getName("intermediary") == dstName }
+                                    ?.getName("srg") ?: dstName)
+                        }
+
+                        override fun acceptMethodArg(method: IMappingProvider.Member, lvIndex: Int, dstName: String) {}
+
+                        override fun acceptMethodVar(
+                            method: IMappingProvider.Member,
+                            lvIndex: Int,
+                            startOpIdx: Int,
+                            asmIndex: Int,
+                            dstName: String
+                        ) {
+                        }
+                    })
+                }
+            }
         }
     }
 
@@ -304,10 +350,12 @@ modId = "$fakeModId"
                     obj.addProperty(
                         key, originalRef
                             .replaceFirst(methodMatchWithoutClass.groups[1]!!.value, replacementName)
-                            .replaceFirst(methodMatchWithoutClass.groups[2]!!.value, methodMatchWithoutClass.groups[2]!!.value.remapDescriptor {
-                                srg.classes.firstOrNull { def -> def.getName("intermediary") == it }?.getName("srg")
-                                    ?: it
-                            })
+                            .replaceFirst(
+                                methodMatchWithoutClass.groups[2]!!.value,
+                                methodMatchWithoutClass.groups[2]!!.value.remapDescriptor {
+                                    srg.classes.firstOrNull { def -> def.getName("intermediary") == it }?.getName("srg")
+                                        ?: it
+                                })
                     )
                 }
                 else -> logger.warn("Failed to remap refmap value: $originalRef")
