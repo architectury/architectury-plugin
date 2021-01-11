@@ -25,4 +25,4 @@ Forge Side:
 - A fake mod is generated, to let forge load it on the correct mod loader and let forge load its assets
 
 ### Usage
-Your gradle version **MUST** be 5.5.1, all `assets` or `data` should go into the common module, with modloader specific files to their corresponding modules.
+Your gradle version **MUST** be equals or above 5.5.1, all `assets` or `data` should go into the common module, with modloader specific files to their corresponding modules.
