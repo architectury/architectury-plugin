@@ -1,17 +1,91 @@
 package me.shedaniel.architect.plugin
 
+import me.shedaniel.architect.plugin.utils.ClassTransformer
+import me.shedaniel.architect.plugin.utils.Transform
+import org.gradle.api.Project
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Handle
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.commons.ClassRemapper
+import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.tree.*
+import org.zeroturnaround.zip.ZipUtil
+import java.io.File
+import java.io.InputStream
 import java.lang.invoke.CallSite
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
+import java.util.*
+import java.util.zip.ZipEntry
+import kotlin.properties.Delegates
 
 const val expectPlatform = "Lme/shedaniel/architectury/ExpectPlatform;"
+const val expectPlatformNew = "Lme/shedaniel/architectury/annotations/ExpectPlatform;"
 
-fun transformExpectPlatform(): (ClassNode, (String, ByteArray) -> Unit) -> ClassNode = { clazz, classAdder ->
-    clazz.methods.filter { method -> method?.visibleAnnotations?.any { it.desc == expectPlatform } == true }
-        .forEach { method ->
+fun Project.projectUniqueIdentifier(): String {
+    val cache = File(project.file(".gradle"), "architectury-cache")
+    cache.mkdirs()
+    val uniqueIdFile = File(cache, "projectID")
+    var id by Delegates.notNull<String>()
+    if (uniqueIdFile.exists()) {
+        id = uniqueIdFile.readText()
+    } else {
+        id = UUID.randomUUID().toString().filterNot { it == '-' }
+        uniqueIdFile.writeText(id)
+    }
+    var name = project.name
+    if (project.rootProject != project) name = project.rootProject.name + "_" + name
+    return "architectury_inject_${name}_$id".filter { Character.isJavaIdentifierPart(it) }
+}
+
+fun transformExpectPlatform(project: Project): ClassTransformer {
+    val projectUniqueIdentifier by lazy { project.projectUniqueIdentifier() }
+    var injectedClass = false
+    return { clazz, classAdder ->
+        clazz.methods.mapNotNull { method ->
+            when {
+                method?.visibleAnnotations?.any { it.desc == expectPlatform } == true -> method to "me/shedaniel/architectury/PlatformMethods"
+                method?.invisibleAnnotations?.any { it.desc == expectPlatformNew } == true -> {
+                    if (!injectedClass) {
+                        injectedClass = true
+                        Transform::class.java.getResourceAsStream("/annotations-inject/injection.jar").use { stream ->
+                            ZipUtil.iterate(stream) { input: InputStream, entry: ZipEntry ->
+                                if (entry.name.endsWith(".class")) {
+                                    val newName = "$projectUniqueIdentifier/${
+                                        entry.name.substringBeforeLast(".class").substringAfterLast('/')
+                                    }"
+                                    classAdder(newName, input.readBytes().let {
+                                        val node = ClassNode(Opcodes.ASM8)
+                                        ClassReader(it).accept(node, ClassReader.EXPAND_FRAMES)
+                                        val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
+                                        val remapper = ClassRemapper(writer, object : Remapper() {
+                                            override fun map(internalName: String?): String {
+                                                if (internalName?.startsWith("me/shedaniel/architect/plugin/callsite") == true) {
+                                                    return internalName.replace(
+                                                        "me/shedaniel/architect/plugin/callsite",
+                                                        projectUniqueIdentifier
+                                                    )
+                                                }
+                                                return super.map(internalName)
+                                            }
+                                        })
+                                        node.apply {
+                                            name = newName
+                                        }.accept(remapper)
+
+                                        writer.toByteArray()
+                                    })
+                                }
+                            }
+                        }
+                    }
+
+                    method to "$projectUniqueIdentifier/PlatformMethods"
+                }
+                else -> null
+            }
+        }.forEach { (method, platformMethodsClass) ->
             if (method.access and Opcodes.ACC_STATIC == 0) {
                 System.err.println("@ExpectPlatform can only apply to static methods!")
             } else {
@@ -49,7 +123,7 @@ fun transformExpectPlatform(): (ClassNode, (String, ByteArray) -> Unit) -> Class
 
                 val handle = Handle(
                     Opcodes.H_INVOKESTATIC,
-                    "me/shedaniel/architectury/PlatformMethods",
+                    platformMethodsClass,
                     "platform",
                     methodType.toMethodDescriptorString(),
                     false
@@ -68,7 +142,8 @@ fun transformExpectPlatform(): (ClassNode, (String, ByteArray) -> Unit) -> Class
             }
         }
 
-    clazz
+        clazz
+    }
 }
 
 private fun InsnList.addLoad(type: Char, index: Int) {

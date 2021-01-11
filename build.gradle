@@ -24,6 +24,10 @@ repositories {
 
 apply plugin: 'java-gradle-plugin'
 
+sourceSets {
+    annotationsInject
+}
+
 dependencies {
     implementation gradleApi()
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.72"
@@ -38,6 +42,20 @@ dependencies {
     implementation "org.ow2.asm:asm-util:8.0"
     implementation "org.zeroturnaround:zt-zip:1.13"
     implementation "com.google.code.gson:gson:2.8.5"
+}
+
+task annotationsInjectJar(type: Jar) {
+    classifier = 'annotations-inject'
+    from sourceSets.annotationsInject.output
+}
+
+jar {
+    dependsOn annotationsInjectJar
+
+    from(annotationsInjectJar.outputs) {
+        into "annotations-inject"
+        rename { "injection.jar" }
+    }
 }
 
 compileKotlin {

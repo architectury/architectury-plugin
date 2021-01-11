@@ -70,7 +70,7 @@ open class TransformTask : Jar() {
         }
 
         project.logger.lifecycle(":transforming " + input.fileName + " => " + intermediate.fileName)
-        Transform.transform(intermediate, output, transformExpectPlatform())
+        Transform.transform(intermediate, output, transformExpectPlatform(project))
 
         Files.deleteIfExists(intermediate)
 

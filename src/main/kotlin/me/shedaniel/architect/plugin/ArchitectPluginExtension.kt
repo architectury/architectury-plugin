@@ -21,6 +21,10 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun common(forgeEnabled: Boolean) {
+        with(project.dependencies) {
+            add("compileOnly", "me.shedaniel:architectury-annotations:+")
+        }
+        
         if (forgeEnabled) {
             project.configurations.create("mcp")
             project.configurations.create("mcpGenerateMod")

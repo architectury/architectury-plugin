@@ -12,8 +12,10 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
+typealias ClassTransformer = (clazz: ClassNode, classAdder: (String, ByteArray) -> Unit) -> ClassNode
+
 object Transform {
-    inline fun transform(input: Path, output: Path, transform: (ClassNode, (String, ByteArray) -> Unit) -> ClassNode) {
+    inline fun transform(input: Path, output: Path, transform: ClassTransformer) {
         output.toFile().delete()
 
         if (!Files.exists(input)) {
@@ -50,7 +52,7 @@ object Transform {
                                 reader.accept(node, ClassReader.EXPAND_FRAMES)
                                 val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
                                 transform(node) { name, bytes ->
-                                    zipOutputStream.putNextEntry(ZipEntry(name))
+                                    zipOutputStream.putNextEntry(ZipEntry("$name.class"))
                                     zipOutputStream.write(bytes)
                                     zipOutputStream.closeEntry()
                                 }.accept(writer)
