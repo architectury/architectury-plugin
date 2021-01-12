@@ -9,6 +9,7 @@ import org.gradle.api.tasks.bundling.AbstractArchiveTask
 
 open class ArchitectPluginExtension(val project: Project) {
     var minecraft = ""
+    var injectInjectables = true
 
     fun common() {
         common(true)
@@ -21,8 +22,10 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun common(forgeEnabled: Boolean) {
-        with(project.dependencies) {
-            add("compileOnly", "me.shedaniel:architectury-annotations:+")
+        if (injectInjectables) {
+            with(project.dependencies) {
+                add("compileOnly", "me.shedaniel:architectury-injectables:1.0.4")
+            }
         }
         
         if (forgeEnabled) {

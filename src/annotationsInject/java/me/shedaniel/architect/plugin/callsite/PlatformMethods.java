@@ -36,28 +36,28 @@ public class PlatformMethods {
     private static String modLoader = null;
 
     public static String getModLoader() {
-        try {
-            return (String) Class.forName("me.shedaniel.architectury.platform.Platform").getDeclaredMethod("getModLoader").invoke(null);
-        } catch (Throwable ignored) {
-        }
         if (modLoader == null) {
-            List<String> loader = new ArrayList<>();
-            HashMap<String, String> MOD_LOADERS = new HashMap<>();
-            MOD_LOADERS.put("net.fabricmc.loader.FabricLoader", "fabric");
-            MOD_LOADERS.put("net.minecraftforge.fml.common.Mod", "forge");
-            for (Map.Entry<String, String> entry : MOD_LOADERS.entrySet()) {
-                try {
-                    Class.forName(entry.getKey(), false, null);
-                    loader.add(entry.getValue());
-                    break;
-                } catch (ClassNotFoundException ignored) {
+            try {
+                modLoader = (String) Class.forName("me.shedaniel.architectury.platform.Platform").getDeclaredMethod("getModLoader").invoke(null);
+            } catch (Throwable ignored) {
+                List<String> loader = new ArrayList<>();
+                HashMap<String, String> MOD_LOADERS = new HashMap<>();
+                MOD_LOADERS.put("net.fabricmc.loader.FabricLoader", "fabric");
+                MOD_LOADERS.put("net.minecraftforge.fml.common.Mod", "forge");
+                for (Map.Entry<String, String> entry : MOD_LOADERS.entrySet()) {
+                    try {
+                        Class.forName(entry.getKey(), false, null);
+                        loader.add(entry.getValue());
+                        break;
+                    } catch (ClassNotFoundException ignored1) {
+                    }
                 }
+                if (loader.isEmpty())
+                    throw new IllegalStateException("No detected mod loader!");
+                if (loader.size() >= 2)
+                    System.err.println("Detected multiple mod loaders! Something is wrong on the classpath! " + String.join(", ", loader));
+                modLoader = loader.get(0);
             }
-            if (loader.isEmpty())
-                throw new IllegalStateException("No detected mod loader!");
-            if (loader.size() >= 2)
-                System.err.println("Detected multiple mod loaders! Something is wrong on the classpath! " + String.join(", ", loader));
-            modLoader = loader.get(0);
         }
         return modLoader;
     }

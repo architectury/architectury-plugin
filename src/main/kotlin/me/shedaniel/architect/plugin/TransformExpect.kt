@@ -41,46 +41,46 @@ fun Project.projectUniqueIdentifier(): String {
 
 fun transformExpectPlatform(project: Project): ClassTransformer {
     val projectUniqueIdentifier by lazy { project.projectUniqueIdentifier() }
-    var injectedClass = false
+    var injectedClass = !project.extensions.getByType(ArchitectPluginExtension::class.java).injectInjectables
     return { clazz, classAdder ->
+        if (!injectedClass) {
+            injectedClass = true
+            Transform::class.java.getResourceAsStream("/annotations-inject/injection.jar").use { stream ->
+                ZipUtil.iterate(stream) { input: InputStream, entry: ZipEntry ->
+                    if (entry.name.endsWith(".class")) {
+                        val newName = "$projectUniqueIdentifier/${
+                            entry.name.substringBeforeLast(".class").substringAfterLast('/')
+                        }"
+                        classAdder(newName, input.readBytes().let {
+                            val node = ClassNode(Opcodes.ASM8)
+                            ClassReader(it).accept(node, ClassReader.EXPAND_FRAMES)
+                            val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
+                            val remapper = ClassRemapper(writer, object : Remapper() {
+                                override fun map(internalName: String?): String {
+                                    if (internalName?.startsWith("me/shedaniel/architect/plugin/callsite") == true) {
+                                        return internalName.replace(
+                                            "me/shedaniel/architect/plugin/callsite",
+                                            projectUniqueIdentifier
+                                        )
+                                    }
+                                    return super.map(internalName)
+                                }
+                            })
+                            node.apply {
+                                name = newName
+                            }.accept(remapper)
+
+                            writer.toByteArray()
+                        })
+                    }
+                }
+            }
+        }
+
         clazz.methods.mapNotNull { method ->
             when {
                 method?.visibleAnnotations?.any { it.desc == expectPlatform } == true -> method to "me/shedaniel/architectury/PlatformMethods"
                 method?.invisibleAnnotations?.any { it.desc == expectPlatformNew } == true -> {
-                    if (!injectedClass) {
-                        injectedClass = true
-                        Transform::class.java.getResourceAsStream("/annotations-inject/injection.jar").use { stream ->
-                            ZipUtil.iterate(stream) { input: InputStream, entry: ZipEntry ->
-                                if (entry.name.endsWith(".class")) {
-                                    val newName = "$projectUniqueIdentifier/${
-                                        entry.name.substringBeforeLast(".class").substringAfterLast('/')
-                                    }"
-                                    classAdder(newName, input.readBytes().let {
-                                        val node = ClassNode(Opcodes.ASM8)
-                                        ClassReader(it).accept(node, ClassReader.EXPAND_FRAMES)
-                                        val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
-                                        val remapper = ClassRemapper(writer, object : Remapper() {
-                                            override fun map(internalName: String?): String {
-                                                if (internalName?.startsWith("me/shedaniel/architect/plugin/callsite") == true) {
-                                                    return internalName.replace(
-                                                        "me/shedaniel/architect/plugin/callsite",
-                                                        projectUniqueIdentifier
-                                                    )
-                                                }
-                                                return super.map(internalName)
-                                            }
-                                        })
-                                        node.apply {
-                                            name = newName
-                                        }.accept(remapper)
-
-                                        writer.toByteArray()
-                                    })
-                                }
-                            }
-                        }
-                    }
-
                     method to "$projectUniqueIdentifier/PlatformMethods"
                 }
                 else -> null
