@@ -6,13 +6,10 @@ import me.shedaniel.architect.plugin.utils.GradleSupport
 import me.shedaniel.architect.plugin.utils.Transform
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.util.LoggerFilter
-import net.fabricmc.loom.util.MixinRefmapHelper
 import net.fabricmc.tinyremapper.*
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -86,11 +83,28 @@ open class TransformTask : Jar() {
 
         if (addRefmap) {
             val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
-            if (MixinRefmapHelper.addRefmapName(
+            var refmapHelperClass: Class<*>? = null
+            runCatching {
+                refmapHelperClass = Class.forName("net.fabricmc.loom.util.MixinRefmapHelper")
+            }.onFailure {
+                refmapHelperClass = Class.forName("net.fabricmc.loom.build.MixinRefmapHelper")
+            }.onFailure {
+                throw ClassNotFoundException("Failed to find MixinRefmapHelper!")
+            }
+
+            val method = refmapHelperClass!!.getDeclaredMethod(
+                "addRefmapName",
+                String::class.java,
+                String::class.java,
+                Path::class.java
+            )
+            if (
+                method.invoke(
+                    null,
                     loomExtension.getRefmapName(),
                     loomExtension.mixinJsonVersion,
                     output
-                )
+                ) as Boolean
             ) {
                 project.logger.debug("Transformed mixin reference maps in output JAR!")
             }
@@ -100,12 +114,17 @@ open class TransformTask : Jar() {
     private fun transformArchitecturyInjectables(intermediate2: Path, output: Path) {
         val remapper = TinyRemapper.newRemapper()
             .withMappings { sink ->
-                sink.acceptClass("me/shedaniel/architectury/targets/ArchitecturyTarget", project.projectUniqueIdentifier() + "/PlatformMethods")
-                sink.acceptMethod(IMappingProvider.Member(
+                sink.acceptClass(
                     "me/shedaniel/architectury/targets/ArchitecturyTarget",
-                    "getCurrentTarget",
-                    "()Ljava/lang/String;"
-                ), "getModLoader")
+                    project.projectUniqueIdentifier() + "/PlatformMethods"
+                )
+                sink.acceptMethod(
+                    IMappingProvider.Member(
+                        "me/shedaniel/architectury/targets/ArchitecturyTarget",
+                        "getCurrentTarget",
+                        "()Ljava/lang/String;"
+                    ), "getModLoader"
+                )
             }
             .build()
 
