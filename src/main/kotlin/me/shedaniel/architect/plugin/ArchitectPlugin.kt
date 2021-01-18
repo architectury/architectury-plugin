@@ -22,13 +22,6 @@ class ArchitectPlugin : Plugin<Project> {
         project.extensions.create("architect", ArchitectPluginExtension::class.java, project)
         project.extensions.add("architectury", project.extensions.getByName("architect"))
 
-        project.afterEvaluate {
-            project.extensions.getByType(JavaPluginExtension::class.java).apply {
-                sourceCompatibility = JavaVersion.VERSION_1_8
-                targetCompatibility = JavaVersion.VERSION_1_8
-            }
-        }
-
         project.tasks.register("transformForge", RemapMCPTask::class.java) {
             it.fakeMod = false
             it.remapMcp = false
