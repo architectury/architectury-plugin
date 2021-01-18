@@ -87,9 +87,11 @@ open class TransformTask : Jar() {
             runCatching {
                 refmapHelperClass = Class.forName("net.fabricmc.loom.util.MixinRefmapHelper")
             }.onFailure {
-                refmapHelperClass = Class.forName("net.fabricmc.loom.build.MixinRefmapHelper")
-            }.onFailure {
-                throw ClassNotFoundException("Failed to find MixinRefmapHelper!")
+                runCatching {
+                    refmapHelperClass = Class.forName("net.fabricmc.loom.build.MixinRefmapHelper")
+                }.onFailure {
+                    throw ClassNotFoundException("Failed to find MixinRefmapHelper!")
+                }
             }
 
             val method = refmapHelperClass!!.getDeclaredMethod(
