@@ -1,10 +1,8 @@
 package me.shedaniel.architect.plugin
 
 import net.fabricmc.loom.util.LoggerFilter
-import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaPluginExtension
 import java.net.URI
 
 class ArchitectPlugin : Plugin<Project> {
@@ -36,11 +34,12 @@ class ArchitectPlugin : Plugin<Project> {
 
         project.tasks.register("transformArchitectJar", TransformTask::class.java) {
             it.group = "Architectury"
+            it.runtime = false
         }
-        
+
         project.tasks.register("transformArchitectJarRuntime", TransformTask::class.java) {
             it.group = "Architectury"
-            it.addRefmap = false
+            it.runtime = true
         }
 
         project.repositories.apply {

@@ -10,13 +10,17 @@ import net.fabricmc.tinyremapper.*
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
+import org.zeroturnaround.zip.ByteSource
+import org.zeroturnaround.zip.ZipUtil
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
+import kotlin.collections.LinkedHashSet
 
 open class TransformTask : Jar() {
     val input: RegularFileProperty = GradleSupport.getFileProperty(project)
-    var addRefmap = true
+    var runtime = false
 
     @TaskAction
     fun doTask() {
@@ -25,7 +29,7 @@ open class TransformTask : Jar() {
         val intermediate2: Path = input.parent.resolve(input.toFile().nameWithoutExtension + "-intermediate2.jar")
         val output: Path = this.archiveFile.get().asFile.toPath()
 
-        if (addRefmap) {
+        if (!runtime) {
             val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
             var remapperBuilder = TinyRemapper.newRemapper()
             for (mixinMapFile in loomExtension.allMixinMappings) {
@@ -65,6 +69,24 @@ open class TransformTask : Jar() {
             remapper.finish()
         } else {
             Files.copy(input, intermediate)
+            val fakeModId = "generated_" + UUID.randomUUID().toString().filterNot { it == '-' }.take(7)
+            ZipUtil.addOrReplaceEntries(
+                intermediate.toFile(), arrayOf(
+                    ByteSource(
+                        "fabric.mod.json", """
+{
+  "schemaVersion": 1,
+  "id": "$fakeModId",
+  "name": "Generated Mod (Please Ignore)",
+  "version": "1.0.0",
+  "custom": {
+    "fabric-loom:generated": true
+  }
+}
+            """.toByteArray()
+                    )
+                )
+            )
         }
 
         Files.deleteIfExists(intermediate2)
@@ -81,7 +103,7 @@ open class TransformTask : Jar() {
 
         Files.deleteIfExists(intermediate2)
 
-        if (addRefmap) {
+        if (!runtime) {
             val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
             var refmapHelperClass: Class<*>? = null
             runCatching {

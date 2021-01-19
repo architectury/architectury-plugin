@@ -76,6 +76,10 @@ open class RemapMCPTask : Jar() {
                     }
                 }
             }
+
+            if (ZipUtil.containsEntry(intermediate.toFile(), "fabric.mod.json")) {
+                ZipUtil.removeEntry(intermediate.toFile(), "fabric.mod.json")
+            }
         }
 
 
