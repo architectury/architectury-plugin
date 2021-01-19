@@ -73,8 +73,7 @@ open class TransformTask : Jar() {
             ZipUtil.addOrReplaceEntries(
                 intermediate.toFile(), arrayOf(
                     ByteSource(
-                        "fabric.mod.json", """
-{
+                        "fabric.mod.json", """{
   "schemaVersion": 1,
   "id": "$fakeModId",
   "name": "Generated Mod (Please Ignore)",
@@ -82,8 +81,7 @@ open class TransformTask : Jar() {
   "custom": {
     "fabric-loom:generated": true
   }
-}
-            """.toByteArray()
+}""".toByteArray()
                     )
                 )
             )

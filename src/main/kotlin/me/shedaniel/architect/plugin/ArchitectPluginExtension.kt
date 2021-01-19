@@ -6,6 +6,9 @@ import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.task.RemapJarTask
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
+import java.io.File
+import java.util.jar.JarOutputStream
+import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
     var minecraft = ""
@@ -96,6 +99,9 @@ open class ArchitectPluginExtension(val project: Project) {
                 it.outputs.upToDateWhen { false }
             } as RemapMCPTask
 
+            transformForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
+            transformForgeFakeModTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
+
             project.artifacts {
                 it.add(
                     "transformForge", mapOf(
@@ -116,6 +122,9 @@ open class ArchitectPluginExtension(val project: Project) {
             project.extensions.getByType(LoomGradleExtension::class.java).generateSrgTiny = true
         }
 
+        transformArchitectJarTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
+        transformArchitectRuntimeJarTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
+
         project.artifacts {
             it.add(
                 "transformed", mapOf(
@@ -133,4 +142,8 @@ open class ArchitectPluginExtension(val project: Project) {
             )
         }
     }
+}
+
+private fun File.createEmptyJar() {
+    JarOutputStream(outputStream(), Manifest()).close()
 }
