@@ -145,5 +145,6 @@ open class ArchitectPluginExtension(val project: Project) {
 }
 
 private fun File.createEmptyJar() {
+    parentFile.mkdirs()
     JarOutputStream(outputStream(), Manifest()).close()
 }
