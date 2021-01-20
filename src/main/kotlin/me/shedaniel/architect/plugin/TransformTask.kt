@@ -4,6 +4,7 @@ package me.shedaniel.architect.plugin
 
 import me.shedaniel.architect.plugin.utils.GradleSupport
 import me.shedaniel.architect.plugin.utils.Transform
+import me.shedaniel.architect.plugin.utils.validateJarFs
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.util.LoggerFilter
 import net.fabricmc.tinyremapper.*
@@ -55,6 +56,7 @@ open class TransformTask : Jar() {
 
             LoggerFilter.replaceSystemOut()
             try {
+                project.validateJarFs(intermediate)
                 OutputConsumerPath.Builder(intermediate).build().use { outputConsumer ->
                     outputConsumer.addNonClassFiles(input)
                     remapper.readClassPath(*classpath)
@@ -92,6 +94,7 @@ open class TransformTask : Jar() {
         Transform.transform(intermediate, intermediate2, transformExpectPlatform(project))
 
         Files.deleteIfExists(intermediate)
+        Files.deleteIfExists(output)
 
         if (project.extensions.getByType(ArchitectPluginExtension::class.java).injectInjectables) {
             transformArchitecturyInjectables(intermediate2, output)
@@ -157,6 +160,7 @@ open class TransformTask : Jar() {
             .filter { p: Path -> this.input.asFile.get().toPath() != p && Files.exists(p) }.toList().toTypedArray()
 
         try {
+            project.validateJarFs(output)
             OutputConsumerPath.Builder(output).build().use { outputConsumer ->
                 outputConsumer.addNonClassFiles(intermediate2, NonClassCopyMode.UNCHANGED, null)
                 remapper.readClassPath(*classpath)

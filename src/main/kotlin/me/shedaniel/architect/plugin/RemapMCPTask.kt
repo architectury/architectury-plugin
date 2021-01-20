@@ -6,6 +6,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import me.shedaniel.architect.plugin.utils.GradleSupport
+import me.shedaniel.architect.plugin.utils.validateJarFs
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.util.LoggerFilter
 import net.fabricmc.loom.util.TinyRemapperMappingsHelper
@@ -144,6 +145,7 @@ modId = "$fakeModId"
         val remapper = remapperBuilder.build()
 
         try {
+            project.validateJarFs(output)
             OutputConsumerPath.Builder(output).build().use { outputConsumer ->
                 outputConsumer.addNonClassFiles(input, NonClassCopyMode.FIX_META_INF, null)
                 outputConsumer.addNonClassFiles(architectFolder.toPath(), NonClassCopyMode.UNCHANGED, null)
@@ -271,27 +273,31 @@ modId = "$fakeModId"
                 }
             }
         }
-        ZipUtil.transformEntry(output, refmap) { input, zipEntry, out ->
-            val refmapElement: JsonObject = JsonParser().parse(InputStreamReader(input)).asJsonObject.deepCopy()
-            if (refmapElement.has("mappings")) {
-                refmapElement["mappings"].asJsonObject.entrySet().forEach { (_, value) ->
-                    remapRefmap(value.asJsonObject)
+        if (ZipUtil.containsEntry(output, refmap)) {
+            ZipUtil.transformEntry(output, refmap) { input, zipEntry, out ->
+                val refmapElement: JsonObject = JsonParser().parse(InputStreamReader(input)).asJsonObject.deepCopy()
+                if (refmapElement.has("mappings")) {
+                    refmapElement["mappings"].asJsonObject.entrySet().forEach { (_, value) ->
+                        remapRefmap(value.asJsonObject)
+                    }
                 }
-            }
-            if (refmapElement.has("data")) {
-                val data = refmapElement["data"].asJsonObject
-                if (data.has("named:intermediary")) {
-                    data.add("searge", data["named:intermediary"].deepCopy().also {
-                        it.asJsonObject.entrySet().forEach { (_, value) ->
-                            remapRefmap(value.asJsonObject)
-                        }
-                    })
-                    data.remove("named:intermediary")
+                if (refmapElement.has("data")) {
+                    val data = refmapElement["data"].asJsonObject
+                    if (data.has("named:intermediary")) {
+                        data.add("searge", data["named:intermediary"].deepCopy().also {
+                            it.asJsonObject.entrySet().forEach { (_, value) ->
+                                remapRefmap(value.asJsonObject)
+                            }
+                        })
+                        data.remove("named:intermediary")
+                    }
                 }
+                out.putNextEntry(ZipEntry(zipEntry.name))
+                out.write(gson.toJson(refmapElement).toByteArray())
+                out.closeEntry()
             }
-            out.putNextEntry(ZipEntry(zipEntry.name))
-            out.write(gson.toJson(refmapElement).toByteArray())
-            out.closeEntry()
+        } else {
+            project.logger.warn("Failed to locate refmap: $refmap")
         }
     }
 
