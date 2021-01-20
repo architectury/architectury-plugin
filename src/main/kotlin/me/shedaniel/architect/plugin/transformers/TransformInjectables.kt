@@ -4,6 +4,7 @@ import me.shedaniel.architect.plugin.ArchitectPluginExtension
 import me.shedaniel.architect.plugin.Transformer
 import me.shedaniel.architect.plugin.projectUniqueIdentifier
 import me.shedaniel.architect.plugin.utils.validateJarFs
+import net.fabricmc.loom.util.LoggerFilter
 import net.fabricmc.tinyremapper.IMappingProvider
 import net.fabricmc.tinyremapper.NonClassCopyMode
 import net.fabricmc.tinyremapper.OutputConsumerPath
@@ -48,6 +49,7 @@ object TransformInjectables : Transformer {
         val classpath = classpathFiles.asSequence().map { obj: File -> obj.toPath() }
             .filter { p: Path -> Files.exists(p) }.toList().toTypedArray()
 
+        LoggerFilter.replaceSystemOut()
         try {
             project.validateJarFs(output)
             OutputConsumerPath.Builder(output).build().use { outputConsumer ->

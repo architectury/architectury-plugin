@@ -3,6 +3,7 @@ package me.shedaniel.architect.plugin.transformers
 import me.shedaniel.architect.plugin.Transformer
 import me.shedaniel.architect.plugin.utils.validateJarFs
 import net.fabricmc.loom.LoomGradleExtension
+import net.fabricmc.loom.util.LoggerFilter
 import net.fabricmc.tinyremapper.*
 import org.gradle.api.Project
 import org.objectweb.asm.ClassWriter
@@ -26,6 +27,7 @@ object TransformForgeEnvironment : Transformer {
             .filter { p: Path -> input != p && Files.exists(p) }.toList().toTypedArray()
         val remapper = remapperBuilder.build()
 
+        LoggerFilter.replaceSystemOut()
         try {
             project.validateJarFs(output)
             OutputConsumerPath.Builder(output).build().use { outputConsumer ->
