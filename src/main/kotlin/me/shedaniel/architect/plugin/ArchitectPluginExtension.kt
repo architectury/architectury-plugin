@@ -30,15 +30,13 @@ open class ArchitectPluginExtension(val project: Project) {
                 add("compileOnly", "me.shedaniel:architectury-injectables:1.0.4")
             }
         }
-        
+
         if (forgeEnabled) {
-            project.configurations.create("mcp")
-            project.configurations.create("mcpGenerateMod")
-            project.configurations.create("transformForge")
-            project.configurations.create("transformForgeFakeMod")
+            project.configurations.create("transformProductionForge")
+            project.configurations.create("transformDevelopmentForge")
         }
-        project.configurations.create("transformed")
-        project.configurations.create("transformedRuntime")
+        project.configurations.create("transformProductionFabric")
+        project.configurations.create("transformDevelopmentFabric")
 
         val buildTask = project.tasks.getByName("build")
         val jarTask = project.tasks.getByName("jar") {
@@ -46,101 +44,73 @@ open class ArchitectPluginExtension(val project: Project) {
             it.archiveClassifier.set("dev")
         } as AbstractArchiveTask
 
-        val transformArchitectJarTask = project.tasks.getByName("transformArchitectJar") {
-            it as TransformTask
+        val transformProductionFabricTask = project.tasks.getByName("transformProductionFabric") {
+            it as TransformingTask
 
-            it.archiveClassifier.set("transformed")
+            it.archiveClassifier.set("transformProductionFabric")
             it.input.set(jarTask.archiveFile.get())
 
-            project.artifacts.add("archives", it)
+            project.artifacts.add("transformProductionFabric", it)
             it.dependsOn(jarTask)
             buildTask.dependsOn(it)
             it.outputs.upToDateWhen { false }
-        } as TransformTask  
-        val transformArchitectRuntimeJarTask = project.tasks.getByName("transformArchitectJarRuntime") {
-            it as TransformTask
+        } as TransformingTask
+        val transformDevelopmentFabricTask = project.tasks.getByName("transformDevelopmentFabric") {
+            it as TransformingTask
 
-            it.archiveClassifier.set("transformedRuntime")
+            it.archiveClassifier.set("transformDevelopmentFabric")
             it.input.set(jarTask.archiveFile.get())
 
-            project.artifacts.add("archives", it)
+            project.artifacts.add("transformDevelopmentFabric", it)
             it.dependsOn(jarTask)
             buildTask.dependsOn(it)
             it.outputs.upToDateWhen { false }
-        } as TransformTask
+        } as TransformingTask
 
         val remapJarTask = project.tasks.getByName("remapJar") {
             it as RemapJarTask
 
             it.archiveClassifier.set("")
-            it.input.set(transformArchitectJarTask.archiveFile.get())
-            it.dependsOn(transformArchitectJarTask)
-            it.mustRunAfter(transformArchitectJarTask)
+            it.input.set(transformProductionFabricTask.archiveFile.get())
+            it.dependsOn(transformProductionFabricTask)
+            it.mustRunAfter(transformProductionFabricTask)
         } as RemapJarTask
 
         if (forgeEnabled) {
-            val transformForgeTask = project.tasks.getByName("transformForge") {
-                it as RemapMCPTask
+            val transformProductionForgeTask = project.tasks.getByName("transformProductionForge") {
+                it as TransformingTask
 
-                it.input.set(transformArchitectJarTask.archiveFile.get())
-                it.archiveClassifier.set("transformedForge")
-                it.dependsOn(transformArchitectJarTask)
+                it.input.set(jarTask.archiveFile.get())
+                it.archiveClassifier.set("transformProductionForge")
+
+                project.artifacts.add("transformProductionForge", it)
+                it.dependsOn(jarTask)
                 buildTask.dependsOn(it)
                 it.outputs.upToDateWhen { false }
-            } as RemapMCPTask
+            } as TransformingTask
 
-            val transformForgeFakeModTask = project.tasks.getByName("transformForgeFakeMod") {
-                it as RemapMCPTask
+            val transformDevelopmentForgeTask = project.tasks.getByName("transformDevelopmentForge") {
+                it as TransformingTask
 
-                it.input.set(transformArchitectRuntimeJarTask.archiveFile.get())
-                it.archiveClassifier.set("transformedForgeFakeMod")
-                it.dependsOn(transformArchitectRuntimeJarTask)
+                it.input.set(jarTask.archiveFile.get())
+                it.archiveClassifier.set("transformDevelopmentForge")
+
+                project.artifacts.add("transformDevelopmentForge", it) { artifact ->
+                    artifact.builtBy(it)
+                }
+                it.dependsOn(jarTask)
                 buildTask.dependsOn(it)
                 it.outputs.upToDateWhen { false }
-            } as RemapMCPTask
+            } as TransformingTask
 
-            transformForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
-            transformForgeFakeModTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
-
-            project.artifacts {
-                it.add(
-                    "transformForge", mapOf(
-                        "file" to transformForgeTask.archiveFile.get().asFile,
-                        "type" to "jar",
-                        "builtBy" to transformForgeTask
-                    )
-                )
-                it.add(
-                    "transformForgeFakeMod", mapOf(
-                        "file" to transformForgeFakeModTask.archiveFile.get().asFile,
-                        "type" to "jar",
-                        "builtBy" to transformForgeFakeModTask
-                    )
-                )
-            }
+            transformProductionForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
+            transformDevelopmentForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
 
             project.extensions.getByType(LoomGradleExtension::class.java).generateSrgTiny = true
         }
 
-        transformArchitectJarTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
-        transformArchitectRuntimeJarTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
-
-        project.artifacts {
-            it.add(
-                "transformed", mapOf(
-                    "file" to transformArchitectJarTask.archiveFile.get().asFile,
-                    "type" to "jar",
-                    "builtBy" to transformArchitectJarTask
-                )
-            )
-            it.add(
-                "transformedRuntime", mapOf(
-                    "file" to transformArchitectRuntimeJarTask.archiveFile.get().asFile,
-                    "type" to "jar",
-                    "builtBy" to transformArchitectRuntimeJarTask
-                )
-            )
-        }
+        transformProductionFabricTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
+        transformDevelopmentFabricTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
     }
 }
 
