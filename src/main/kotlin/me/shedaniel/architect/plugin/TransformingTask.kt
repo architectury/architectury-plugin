@@ -52,7 +52,7 @@ open class TransformingTask : Jar() {
             }
 
             runCatching {
-                Files.move(o, o, StandardCopyOption.COPY_ATTRIBUTES)
+                Files.move(o, o, StandardCopyOption.ATOMIC_MOVE)
             }.onFailure {
                 throw RuntimeException(
                     "Transformer step ${index + 1}/${transformers.size} [${transformer::class.simpleName}] did not properly close the output file!",
