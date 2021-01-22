@@ -4,6 +4,7 @@ import me.shedaniel.architect.plugin.utils.GradleSupport
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.nio.file.Files
@@ -33,6 +34,16 @@ open class TransformingTask : Jar() {
         transformers.forEachIndexed { index, transformer ->
             val i = if (index == 0) input else taskOutputs[index - 1]
             val o = if (index == taskOutputs.lastIndex) output else taskOutputs[index]
+
+            runCatching {
+                o.toFile().also { it.renameTo(it) }
+            }.onFailure {
+                throw RuntimeException(
+                    "Can not access output file before transforming step ${index + 1}/${transformers.size} [${transformer::class.simpleName}]",
+                    it
+                )
+            }
+            
             Files.deleteIfExists(o)
             Files.createDirectories(o.parent)
             runCatching {
