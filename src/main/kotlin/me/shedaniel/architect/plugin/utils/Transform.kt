@@ -39,8 +39,7 @@ object Transform {
             }
             output.toFile().writeBytes(allBytes)
         } else {
-            val zipOutputStream = ZipOutputStream(output.toFile().outputStream())
-            zipOutputStream.use {
+            ZipOutputStream(output.toFile().outputStream()).use { zipOutputStream ->
                 ZipInputStream(Files.newInputStream(input)).use {
                     while (true) {
                         val entry = it.nextEntry ?: break

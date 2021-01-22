@@ -47,10 +47,9 @@ object RemapMixinVariables : Transformer {
                 remapper.apply(outputConsumer)
             }
         } catch (e: Exception) {
-            remapper.finish()
             throw RuntimeException("Failed to remap $input to $output", e)
+        } finally {
+            remapper.finish()
         }
-
-        remapper.finish()
     }
 }

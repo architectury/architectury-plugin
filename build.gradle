@@ -9,7 +9,17 @@ plugins {
 }
 
 group "me.shedaniel"
-version = "2.0." + (System.getenv("GITHUB_RUN_NUMBER") == null ? (((short) new Random().nextInt()).abs() + 1000).toString() : System.getenv("GITHUB_RUN_NUMBER"))
+
+def isSnapshot = System.getenv("PR_NUM") != null
+def runNumber = (System.getenv("GITHUB_RUN_NUMBER") == null ? (((short) new Random().nextInt()).abs() + 1000).toString() : System.getenv("GITHUB_RUN_NUMBER"))
+
+if (isSnapshot) {
+    version = base_version + "." + runNumber
+} else {
+    version = base_version + "-" + System.getenv("PR_NUM") + "-SNAPSHOT." + runNumber
+}
+
+def pluginId = "architectury-plugin"
 
 logger.lifecycle(":building architectury plugin v${version}")
 
@@ -67,7 +77,7 @@ compileKotlin {
 gradlePlugin {
     plugins {
         architect {
-            id = 'architectury-plugin'
+            id = pluginId
             implementationClass = 'me.shedaniel.architect.plugin.ArchitectPlugin'
         }
     }
@@ -100,8 +110,8 @@ bintray {
 publishing {
     publications {
         MyPublication(MavenPublication) {
-            groupId 'architectury-plugin'
-            artifactId 'architectury-plugin.gradle.plugin'
+            groupId pluginId
+            artifactId pluginId + '.gradle.plugin'
             
             from components.java
             artifact(sourcesJar)
