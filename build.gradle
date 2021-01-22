@@ -13,7 +13,7 @@ group "me.shedaniel"
 def isSnapshot = System.getenv("PR_NUM") != null
 def runNumber = (System.getenv("GITHUB_RUN_NUMBER") == null ? (((short) new Random().nextInt()).abs() + 1000).toString() : System.getenv("GITHUB_RUN_NUMBER"))
 
-if (isSnapshot) {
+if (!isSnapshot) {
     version = base_version + "." + runNumber
 } else {
     version = base_version + "-" + System.getenv("PR_NUM") + "-SNAPSHOT." + runNumber
