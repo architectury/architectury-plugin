@@ -8,6 +8,7 @@ import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.*
 import kotlin.properties.Delegates
 import kotlin.time.Duration
@@ -46,6 +47,15 @@ open class TransformingTask : Jar() {
             }.onFailure {
                 throw RuntimeException(
                     "Failed transformer step ${index + 1}/${transformers.size} [${transformer::class.simpleName}]",
+                    it
+                )
+            }
+
+            runCatching {
+                Files.move(o, o, StandardCopyOption.COPY_ATTRIBUTES)
+            }.onFailure {
+                throw RuntimeException(
+                    "Transformer step ${index + 1}/${transformers.size} [${transformer::class.simpleName}] did not properly close the output file!",
                     it
                 )
             }
