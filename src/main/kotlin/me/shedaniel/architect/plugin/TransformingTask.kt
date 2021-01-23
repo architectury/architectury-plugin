@@ -6,7 +6,6 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
 import java.io.File
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -30,7 +29,7 @@ open class TransformingTask : Jar() {
                 .toPath()
         }
         val output: Path = this.archiveFile.get().asFile.toPath()
-        
+
         transformers.forEachIndexed { index, transformer ->
             val i = if (index == 0) input else taskOutputs[index - 1]
             val o = taskOutputs[index]
@@ -63,12 +62,7 @@ open class TransformingTask : Jar() {
             }
         }
 
-        kotlin.runCatching {
-            Files.move(taskOutputs.last(), output, StandardCopyOption.REPLACE_EXISTING)
-        }.onFailure { 
-            it.printStackTrace()
-            Thread.sleep(1000000)
-        }
+        Files.move(taskOutputs.last(), output, StandardCopyOption.REPLACE_EXISTING)
     }
 
     operator fun invoke(transformer: Transformer) {
