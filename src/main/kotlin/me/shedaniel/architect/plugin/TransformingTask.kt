@@ -30,10 +30,6 @@ open class TransformingTask : Jar() {
                 .toPath()
         }
         val output: Path = this.archiveFile.get().asFile.toPath()
-
-        if (!output.toFile().delete()) {
-            throw IOException("Failed to delete output jar.")
-        }
         
         transformers.forEachIndexed { index, transformer ->
             val i = if (index == 0) input else taskOutputs[index - 1]
