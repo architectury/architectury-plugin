@@ -63,7 +63,12 @@ open class TransformingTask : Jar() {
             }
         }
 
-        Files.move(taskOutputs.last(), output, StandardCopyOption.REPLACE_EXISTING)
+        kotlin.runCatching {
+            Files.move(taskOutputs.last(), output, StandardCopyOption.REPLACE_EXISTING)
+        }.onFailure { 
+            it.printStackTrace()
+            Thread.sleep(1000000)
+        }
     }
 
     operator fun invoke(transformer: Transformer) {
