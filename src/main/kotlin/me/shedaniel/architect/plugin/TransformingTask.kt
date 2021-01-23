@@ -8,6 +8,7 @@ import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.*
 import kotlin.properties.Delegates
 import kotlin.time.Duration
@@ -28,10 +29,11 @@ open class TransformingTask : Jar() {
                 .toPath()
         }
         val output: Path = this.archiveFile.get().asFile.toPath()
-        Files.deleteIfExists(output)
+
         transformers.forEachIndexed { index, transformer ->
             val i = if (index == 0) input else taskOutputs[index - 1]
-            val o = if (index == taskOutputs.lastIndex) output else taskOutputs[index]
+            val o = taskOutputs[index]
+
             Files.deleteIfExists(o)
             Files.createDirectories(o.parent)
             runCatching {
@@ -49,7 +51,18 @@ open class TransformingTask : Jar() {
                     it
                 )
             }
+
+            runCatching {
+                o.toFile().also { it.renameTo(it) }
+            }.onFailure {
+                throw RuntimeException(
+                    "Transformer step ${index + 1}/${transformers.size} [${transformer::class.simpleName}] did not properly close the output file!",
+                    it
+                )
+            }
         }
+
+        Files.move(taskOutputs.last(), output, StandardCopyOption.REPLACE_EXISTING)
     }
 
     operator fun invoke(transformer: Transformer) {

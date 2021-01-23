@@ -1,9 +1,7 @@
-name: Compile & Release
+name: Snapshot Compile & Release
 
 on:
-  push:
-    branches:
-      - master
+  [pull_request]
 
 jobs:
   build:
@@ -21,3 +19,4 @@ jobs:
         env:
           BINTRAY_USER: shedaniel
           BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
+          PR_NUM: ${{github.event.number}}
