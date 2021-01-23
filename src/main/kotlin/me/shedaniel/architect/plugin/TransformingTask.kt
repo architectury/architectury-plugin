@@ -6,6 +6,7 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -29,16 +30,10 @@ open class TransformingTask : Jar() {
         }
         val output: Path = this.archiveFile.get().asFile.toPath()
 
-        runCatching {
-            output.toFile().also { it.renameTo(it) }
-        }.onFailure {
-            throw RuntimeException(
-                "Can not access output file!",
-                it
-            )
+        if (!output.toFile().delete()) {
+            throw IOException("Failed to delete output jar.")
         }
-
-        Files.deleteIfExists(output)
+        
         transformers.forEachIndexed { index, transformer ->
             val i = if (index == 0) input else taskOutputs[index - 1]
             val o = if (index == taskOutputs.lastIndex) output else taskOutputs[index]
