@@ -4,7 +4,7 @@ Talk to us on [Discord](https://discord.gg/C2RdJDpRBP)!
 Architectury Plugin is a gradle plugin to allow easier multi-modloader set-ups using a common module.
 
 ### Examples
-- [KubeJS](https://github.com/KubeJS/KubeJS)
+- [KubeJS](https://github.com/KubeJS-Mods/KubeJS)
 - [Architectury Example Mod](https://github.com/architectury/architectury-example-mod)
 
 ### Important Information
