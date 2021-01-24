@@ -2,6 +2,7 @@ package me.shedaniel.architect.plugin.transformers
 
 import me.shedaniel.architect.plugin.ArchitectPluginExtension
 import me.shedaniel.architect.plugin.Transformer
+import me.shedaniel.architect.plugin.TransformerStepSkipped
 import me.shedaniel.architect.plugin.projectUniqueIdentifier
 import me.shedaniel.architect.plugin.utils.validateJarFs
 import net.fabricmc.loom.util.LoggerFilter
@@ -23,6 +24,7 @@ object TransformInjectables : Transformer {
             transformArchitecturyInjectables(project, input, output)
         } else {
             Files.copy(input, output)
+            throw TransformerStepSkipped
         }
     }
 

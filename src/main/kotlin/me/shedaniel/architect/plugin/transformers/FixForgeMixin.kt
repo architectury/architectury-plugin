@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import me.shedaniel.architect.plugin.Transformer
+import me.shedaniel.architect.plugin.TransformerStepSkipped
 import net.fabricmc.loom.LoomGradleExtension
 import org.gradle.api.Project
 import org.zeroturnaround.zip.ZipUtil
@@ -83,6 +84,9 @@ object FixForgeMixin : Transformer {
             }
         } else {
             project.logger.info("Failed to locate refmap: $refmap")
+            if (mixinConfigs.isEmpty()) {
+                throw TransformerStepSkipped
+            }
         }
     }
 

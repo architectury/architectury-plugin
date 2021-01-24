@@ -1,6 +1,7 @@
 package me.shedaniel.architect.plugin.transformers
 
 import me.shedaniel.architect.plugin.Transformer
+import me.shedaniel.architect.plugin.TransformerStepSkipped
 import net.fabricmc.loom.LoomGradleExtension
 import org.gradle.api.Project
 import java.nio.file.Files
@@ -36,6 +37,8 @@ object AddRefmapName : Transformer {
             ) as Boolean
         ) {
             project.logger.debug("Transformed mixin reference maps in output JAR!")
+        } else {
+            throw TransformerStepSkipped
         }
     }
 }

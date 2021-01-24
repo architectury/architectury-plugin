@@ -1,6 +1,7 @@
 package me.shedaniel.architect.plugin.transformers
 
 import me.shedaniel.architect.plugin.Transformer
+import me.shedaniel.architect.plugin.TransformerStepSkipped
 import me.shedaniel.architect.plugin.utils.validateJarFs
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.util.LoggerFilter
@@ -34,7 +35,7 @@ object RemapMixinVariables : Transformer {
 
         if (!requiresRemap) {
             Files.copy(input, output)
-            return
+            throw TransformerStepSkipped
         }
 
         val remapper = remapperBuilder.build()

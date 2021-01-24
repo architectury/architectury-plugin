@@ -37,13 +37,22 @@ open class TransformingTask : Jar() {
             Files.deleteIfExists(o)
             Files.createDirectories(o.parent)
             runCatching {
+                var skipped = false
                 measureTime {
-                    transformer(project, i, o)
+                    try {
+                        transformer(project, i, o)
+                    } catch (ignored: TransformerStepSkipped) {
+                        skipped = true
+                    }
                     if (index != 0) {
                         Files.deleteIfExists(i)
                     }
                 }.let { duration ->
-                    project.logger.lifecycle(":finished transforming step ${index + 1}/${transformers.size} [${transformer::class.simpleName}] in $duration")
+                    if (skipped) {
+                        project.logger.lifecycle(":skipped transforming step ${index + 1}/${transformers.size} [${transformer::class.simpleName}] in $duration")
+                    } else {
+                        project.logger.lifecycle(":finished transforming step ${index + 1}/${transformers.size} [${transformer::class.simpleName}] in $duration")
+                    }
                 }
             }.onFailure {
                 throw RuntimeException(
@@ -95,3 +104,5 @@ fun Project.projectUniqueIdentifier(): String {
 }
 
 typealias Transformer = (project: Project, input: Path, output: Path) -> Unit
+
+object TransformerStepSkipped : Throwable()

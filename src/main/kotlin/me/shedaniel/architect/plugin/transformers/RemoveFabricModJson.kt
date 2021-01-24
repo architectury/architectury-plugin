@@ -1,6 +1,7 @@
 package me.shedaniel.architect.plugin.transformers
 
 import me.shedaniel.architect.plugin.Transformer
+import me.shedaniel.architect.plugin.TransformerStepSkipped
 import org.gradle.api.Project
 import org.zeroturnaround.zip.ZipUtil
 import java.nio.file.Files
@@ -11,6 +12,8 @@ object RemoveFabricModJson : Transformer {
         Files.copy(input, output)
         if (ZipUtil.containsEntry(output.toFile(), "fabric.mod.json")) {
             ZipUtil.removeEntry(output.toFile(), "fabric.mod.json")
+        } else {
+            throw TransformerStepSkipped
         }
     }
 }

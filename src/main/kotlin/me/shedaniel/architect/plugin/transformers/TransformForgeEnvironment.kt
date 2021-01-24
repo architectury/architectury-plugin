@@ -1,6 +1,7 @@
 package me.shedaniel.architect.plugin.transformers
 
 import me.shedaniel.architect.plugin.Transformer
+import me.shedaniel.architect.plugin.TransformerStepSkipped
 import me.shedaniel.architect.plugin.utils.validateJarFs
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.util.LoggerFilter
@@ -53,6 +54,7 @@ object TransformForgeEnvironment : Transformer {
     }
 
     private fun mapMixin(project: Project, remapperBuilder: TinyRemapper.Builder) {
+        var remap = false
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
         val srg = project.extensions.getByType(LoomGradleExtension::class.java).mappingsProvider.mappingsWithSrg
         for (mixinMapFile in loomExtension.allMixinMappings) {
@@ -65,6 +67,7 @@ object TransformForgeEnvironment : Transformer {
                                 .firstOrNull { it.getName("intermediary") == dstName }
                                 ?.getName("srg") ?: dstName
                             )
+                            remap = true
                         }
 
                         override fun acceptMethod(method: IMappingProvider.Member, dstName: String) {
@@ -74,6 +77,7 @@ object TransformForgeEnvironment : Transformer {
                                     .flatMap { it.methods }
                                     .firstOrNull { it.getName("intermediary") == dstName }
                                     ?.getName("srg") ?: dstName)
+                            remap = true
                         }
 
                         override fun acceptField(field: IMappingProvider.Member, dstName: String) {
@@ -83,6 +87,7 @@ object TransformForgeEnvironment : Transformer {
                                     .flatMap { it.fields }
                                     .firstOrNull { it.getName("intermediary") == dstName }
                                     ?.getName("srg") ?: dstName)
+                            remap = true
                         }
 
                         override fun acceptMethodArg(method: IMappingProvider.Member, lvIndex: Int, dstName: String) {}
@@ -98,6 +103,9 @@ object TransformForgeEnvironment : Transformer {
                     })
                 }
             }
+        }
+        if (!remap) {
+            throw TransformerStepSkipped
         }
     }
 }
