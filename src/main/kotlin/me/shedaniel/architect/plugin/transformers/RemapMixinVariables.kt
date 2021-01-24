@@ -16,8 +16,12 @@ object RemapMixinVariables : Transformer {
     override fun invoke(project: Project, input: Path, output: Path) {
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
         var remapperBuilder = TinyRemapper.newRemapper()
+        var requiresRemap = false
         for (mixinMapFile in loomExtension.allMixinMappings) {
             if (mixinMapFile.exists()) {
+                if (!requiresRemap) {
+                    requiresRemap = Files.readAllLines(mixinMapFile.toPath()).count { it.isNotBlank() } > 1
+                }
                 remapperBuilder = remapperBuilder.withMappings(
                     TinyUtils.createTinyMappingProvider(
                         mixinMapFile.toPath(),
@@ -26,6 +30,11 @@ object RemapMixinVariables : Transformer {
                     )
                 )
             }
+        }
+
+        if (!requiresRemap) {
+            Files.copy(input, output)
+            return
         }
 
         val remapper = remapperBuilder.build()
