@@ -8,6 +8,15 @@ import java.net.URI
 
 class ArchitectPlugin : Plugin<Project> {
     override fun apply(project: Project) {
+        val version = ArchitectPlugin::class.java.getPackage().implementationVersion
+        val loggedVersions = System.getProperty("architectury.printed.logged", "").split(",").toMutableSet()
+
+        if (!loggedVersions.contains(version)) {
+            loggedVersions.add(version)
+            System.setProperty("architectury.printed.logged", loggedVersions.joinToString(","))
+            project.logger.lifecycle("Architect Plugin: $version")
+        }
+
         LoggerFilter.replaceSystemOut()
 
         project.apply(

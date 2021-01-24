@@ -74,6 +74,12 @@ compileKotlin {
     }
 }
 
+jar {
+    manifest {
+        attributes 'Implementation-Version': project.version
+    }
+}
+
 gradlePlugin {
     plugins {
         architect {
