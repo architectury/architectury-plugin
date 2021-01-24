@@ -103,18 +103,7 @@ open class ArchitectPluginExtension(val project: Project) {
                 it.outputs.upToDateWhen { false }
             } as TransformingTask
 
-            transformProductionForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
-            transformDevelopmentForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
-
             project.extensions.getByType(LoomGradleExtension::class.java).generateSrgTiny = true
         }
-
-        transformProductionFabricTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
-        transformDevelopmentFabricTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
     }
-}
-
-private fun File.createEmptyJar() {
-    parentFile.mkdirs()
-    JarOutputStream(outputStream(), Manifest()).close()
 }
