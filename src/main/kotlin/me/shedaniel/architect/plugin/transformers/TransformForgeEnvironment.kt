@@ -19,7 +19,7 @@ object TransformForgeEnvironment : Transformer {
             .withMappings(remapEnvironment())
             .skipLocalVariableMapping(true)
 
-        mapMixin(project, remapperBuilder, input, output)
+        mapMixin(project, remapperBuilder)
 
         val classpathFiles: Set<File> = LinkedHashSet(
             project.configurations.getByName("compileClasspath").files
@@ -53,8 +53,7 @@ object TransformForgeEnvironment : Transformer {
         )
     }
 
-    private fun mapMixin(project: Project, remapperBuilder: TinyRemapper.Builder, input: Path, output: Path) {
-        var remap = false
+    private fun mapMixin(project: Project, remapperBuilder: TinyRemapper.Builder) {
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
         val srg = project.extensions.getByType(LoomGradleExtension::class.java).mappingsProvider.mappingsWithSrg
         for (mixinMapFile in loomExtension.allMixinMappings) {
@@ -67,7 +66,6 @@ object TransformForgeEnvironment : Transformer {
                                 .firstOrNull { it.getName("intermediary") == dstName }
                                 ?.getName("srg") ?: dstName
                             )
-                            remap = true
                         }
 
                         override fun acceptMethod(method: IMappingProvider.Member, dstName: String) {
@@ -77,7 +75,6 @@ object TransformForgeEnvironment : Transformer {
                                     .flatMap { it.methods }
                                     .firstOrNull { it.getName("intermediary") == dstName }
                                     ?.getName("srg") ?: dstName)
-                            remap = true
                         }
 
                         override fun acceptField(field: IMappingProvider.Member, dstName: String) {
@@ -87,7 +84,6 @@ object TransformForgeEnvironment : Transformer {
                                     .flatMap { it.fields }
                                     .firstOrNull { it.getName("intermediary") == dstName }
                                     ?.getName("srg") ?: dstName)
-                            remap = true
                         }
 
                         override fun acceptMethodArg(method: IMappingProvider.Member, lvIndex: Int, dstName: String) {}
@@ -103,10 +99,6 @@ object TransformForgeEnvironment : Transformer {
                     })
                 }
             }
-        }
-        if (!remap) {
-            Files.copy(input, output)
-            throw TransformerStepSkipped
         }
     }
 }
