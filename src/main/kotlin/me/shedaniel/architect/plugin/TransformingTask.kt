@@ -70,7 +70,7 @@ open class TransformingTask : Jar() {
                 )
             }
         }
-        
+
         var tries = 0
         var exception: FileSystemException? = null
         while (tries < 10) {
@@ -85,6 +85,9 @@ open class TransformingTask : Jar() {
                 }
                 Thread.sleep(1000)
             }
+        }
+        if (exception != null) {
+            throw exception
         }
     }
 
