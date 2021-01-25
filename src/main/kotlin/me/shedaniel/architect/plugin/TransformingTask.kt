@@ -70,8 +70,22 @@ open class TransformingTask : Jar() {
                 )
             }
         }
-
-        Files.move(taskOutputs.last(), output, StandardCopyOption.REPLACE_EXISTING)
+        
+        var tries = 0
+        var exception: FileSystemException? = null
+        while (tries < 10) {
+            try {
+                Files.move(taskOutputs.last(), output, StandardCopyOption.REPLACE_EXISTING)
+            } catch (ignored: FileSystemException) {
+                tries++
+                if (exception == null) {
+                    exception = ignored
+                } else {
+                    exception.addSuppressed(ignored)
+                }
+                Thread.sleep(1000)
+            }
+        }
     }
 
     operator fun invoke(transformer: Transformer) {
