@@ -19,7 +19,7 @@ object TransformForgeEnvironment : Transformer {
             .withMappings(remapEnvironment())
             .skipLocalVariableMapping(true)
 
-        mapMixin(project, remapperBuilder)
+        mapMixin(project, remapperBuilder, input, output)
 
         val classpathFiles: Set<File> = LinkedHashSet(
             project.configurations.getByName("compileClasspath").files
@@ -53,7 +53,7 @@ object TransformForgeEnvironment : Transformer {
         )
     }
 
-    private fun mapMixin(project: Project, remapperBuilder: TinyRemapper.Builder) {
+    private fun mapMixin(project: Project, remapperBuilder: TinyRemapper.Builder, input: Path, output: Path) {
         var remap = false
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
         val srg = project.extensions.getByType(LoomGradleExtension::class.java).mappingsProvider.mappingsWithSrg
@@ -105,6 +105,7 @@ object TransformForgeEnvironment : Transformer {
             }
         }
         if (!remap) {
+            Files.copy(input, output)
             throw TransformerStepSkipped
         }
     }
