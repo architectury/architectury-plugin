@@ -21,7 +21,6 @@ open class ArchitectPluginExtension(val project: Project) {
     fun platformSetupLoomIde() {
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
         loomExtension.autoGenIDERuns = true
-        loomExtension.addTaskBeforeRun("\$PROJECT_DIR\$/${project.name}:build")
     }
 
     fun common(forgeEnabled: Boolean) {
@@ -67,6 +66,8 @@ open class ArchitectPluginExtension(val project: Project) {
             it.outputs.upToDateWhen { false }
         } as TransformingTask
 
+        transformProductionFabricTask.dependsOn(transformDevelopmentFabricTask)
+
         val remapJarTask = project.tasks.getByName("remapJar") {
             it as RemapJarTask
 
@@ -102,6 +103,8 @@ open class ArchitectPluginExtension(val project: Project) {
                 buildTask.dependsOn(it)
                 it.outputs.upToDateWhen { false }
             } as TransformingTask
+
+            transformProductionForgeTask.dependsOn(transformDevelopmentForgeTask)
 
             transformProductionForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
             transformDevelopmentForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()

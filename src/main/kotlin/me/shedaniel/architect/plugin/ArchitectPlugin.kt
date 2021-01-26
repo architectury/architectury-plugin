@@ -4,6 +4,9 @@ import me.shedaniel.architect.plugin.transformers.*
 import net.fabricmc.loom.util.LoggerFilter
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.ExtensionAware
+import org.gradle.plugins.ide.idea.model.IdeaModel
+import org.jetbrains.gradle.ext.ActionDelegationConfig
 import java.net.URI
 
 class ArchitectPlugin : Plugin<Project> {
@@ -23,9 +26,20 @@ class ArchitectPlugin : Plugin<Project> {
             mapOf(
                 "plugin" to "java",
                 "plugin" to "eclipse",
-                "plugin" to "idea"
+                "plugin" to "idea",
+                "plugin" to "org.jetbrains.gradle.plugin.idea-ext"
             )
         )
+
+        project.afterEvaluate {
+            val ideaModel = project.extensions.getByName("idea") as IdeaModel
+            val idea = ideaModel.project as? ExtensionAware
+            val settings = idea?.extensions?.getByName("settings") as? ExtensionAware
+            (settings?.extensions?.getByName("delegateActions") as? ActionDelegationConfig)?.apply {
+                delegateBuildRunToGradle = true
+                testRunner = ActionDelegationConfig.TestRunner.GRADLE
+            }
+        }
 
         project.extensions.create("architectury", ArchitectPluginExtension::class.java, project)
 
