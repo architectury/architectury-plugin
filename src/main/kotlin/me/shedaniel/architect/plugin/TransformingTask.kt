@@ -3,6 +3,8 @@ package me.shedaniel.architect.plugin
 import me.shedaniel.architect.plugin.utils.GradleSupport
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
 import java.io.File
@@ -16,7 +18,9 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.nanoseconds
 
 open class TransformingTask : Jar() {
+    @InputFile
     val input: RegularFileProperty = GradleSupport.getFileProperty(project)
+    @Input
     val transformers = mutableListOf<Transformer>()
 
     @ExperimentalTime
