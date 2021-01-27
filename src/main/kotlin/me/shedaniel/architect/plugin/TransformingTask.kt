@@ -8,6 +8,8 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
 import java.io.File
+import java.io.ObjectOutputStream
+import java.io.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -20,6 +22,7 @@ import kotlin.time.nanoseconds
 open class TransformingTask : Jar() {
     @InputFile
     val input: RegularFileProperty = GradleSupport.getFileProperty(project)
+
     @Input
     val transformers = mutableListOf<Transformer>()
 
@@ -107,6 +110,12 @@ fun Project.projectUniqueIdentifier(): String {
     return "architectury_inject_${name}_$id".filter { Character.isJavaIdentifierPart(it) }
 }
 
-typealias Transformer = (project: Project, input: Path, output: Path) -> Unit
+interface Transformer : Serializable {
+    operator fun invoke(project: Project, input: Path, output: Path)
+
+    @JvmDefault
+    fun writeObject(s: ObjectOutputStream) {
+    }
+}
 
 object TransformerStepSkipped : Throwable()

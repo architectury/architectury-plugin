@@ -73,6 +73,7 @@ jar {
 compileKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
+        freeCompilerArgs = ['-Xjvm-default=compatibility']
     }
 }
 
