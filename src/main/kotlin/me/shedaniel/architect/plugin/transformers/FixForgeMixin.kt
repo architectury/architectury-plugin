@@ -102,6 +102,7 @@ object FixForgeMixin : Transformer {
             val methodMatch = methodPattern.matchEntire(originalRef)
             val fieldMatch = fieldPattern.matchEntire(originalRef)
             val methodMatchWithoutClass = methodPatternWithoutClass.matchEntire(originalRef)
+            val classMatch = srg.classes.firstOrNull { it.getName("intermediary") == originalRef }
 
             when {
                 methodMatch != null -> {
@@ -157,6 +158,7 @@ object FixForgeMixin : Transformer {
                                 })
                     )
                 }
+                classMatch != null -> obj.addProperty(key, classMatch.getName("srg"))
                 else -> project.logger.warn("Failed to remap refmap value: $originalRef")
             }
         }
