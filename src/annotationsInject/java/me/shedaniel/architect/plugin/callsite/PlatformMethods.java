@@ -46,7 +46,7 @@ public class PlatformMethods {
                 MOD_LOADERS.put("net.minecraftforge.fml.common.Mod", "forge");
                 for (Map.Entry<String, String> entry : MOD_LOADERS.entrySet()) {
                     try {
-                        Class.forName(entry.getKey(), false, null);
+                        PlatformMethods.class.getClassLoader().loadClass(entry.getKey());
                         loader.add(entry.getValue());
                         break;
                     } catch (ClassNotFoundException ignored1) {
