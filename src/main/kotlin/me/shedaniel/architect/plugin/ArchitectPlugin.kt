@@ -85,7 +85,6 @@ class ArchitectPlugin : Plugin<Project> {
 
         project.repositories.apply {
             mavenCentral()
-            jcenter()
             maven { it.url = URI("https://dl.bintray.com/shedaniel/cloth") }
         }
     }
