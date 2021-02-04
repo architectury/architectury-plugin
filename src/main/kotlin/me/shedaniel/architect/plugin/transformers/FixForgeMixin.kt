@@ -94,13 +94,15 @@ object FixForgeMixin : Transformer {
         val srg = project.extensions.getByType(LoomGradleExtension::class.java).mappingsProvider.mappingsWithSrg
         val methodPattern = "L(.*);(.*)(\\(.*)".toRegex()
         val methodPatternWithoutClass = "(.*)(\\(.*)".toRegex()
-        val fieldPattern = "(.*):(.*)".toRegex()
+        val fieldPattern = "L(.*);(.*):(.*)".toRegex()
+        val fieldPatternWithoutClass = "(.*):(.*)".toRegex()
 
         obj.keySet().forEach { key ->
             val originalRef = obj[key].asString
 
             val methodMatch = methodPattern.matchEntire(originalRef)
             val fieldMatch = fieldPattern.matchEntire(originalRef)
+            val fieldMatchWithoutClass = fieldPatternWithoutClass.matchEntire(originalRef)
             val methodMatchWithoutClass = methodPatternWithoutClass.matchEntire(originalRef)
             val classMatch = srg.classes.firstOrNull { it.getName("intermediary") == originalRef }
 
@@ -127,15 +129,36 @@ object FixForgeMixin : Transformer {
                     )
                 }
                 fieldMatch != null -> {
+                    val matchedClass =
+                        srg.classes.firstOrNull { it.getName("intermediary") == fieldMatch.groups[1]!!.value }
                     val replacementName: String = srg.classes.asSequence()
                         .flatMap { it.fields.asSequence() }
-                        .filter { it.getName("intermediary") == fieldMatch.groups[1]!!.value }
-                        .firstOrNull { it.getDescriptor("intermediary") == fieldMatch.groups[2]!!.value }
-                        ?.getName("srg") ?: fieldMatch.groups[1]!!.value
+                        .filter { it.getName("intermediary") == fieldMatch.groups[2]!!.value }
+                        .firstOrNull { it.getDescriptor("intermediary") == fieldMatch.groups[3]!!.value }
+                        ?.getName("srg") ?: fieldMatch.groups[2]!!.value
                     obj.addProperty(
                         key, originalRef
-                            .replaceFirst(fieldMatch.groups[1]!!.value, replacementName)
-                            .replaceFirst(fieldMatch.groups[2]!!.value, fieldMatch.groups[2]!!.value.remapDescriptor {
+                            .replaceFirst(
+                                fieldMatch.groups[1]!!.value,
+                                matchedClass?.getName("srg") ?: fieldMatch.groups[1]!!.value
+                            )
+                            .replaceFirst(fieldMatch.groups[2]!!.value, replacementName)
+                            .replaceFirst(fieldMatch.groups[3]!!.value, fieldMatch.groups[3]!!.value.remapDescriptor {
+                                srg.classes.firstOrNull { def -> def.getName("intermediary") == it }?.getName("srg")
+                                    ?: it
+                            })
+                    )
+                }
+                fieldMatchWithoutClass != null -> {
+                    val replacementName: String = srg.classes.asSequence()
+                        .flatMap { it.fields.asSequence() }
+                        .filter { it.getName("intermediary") == fieldMatchWithoutClass.groups[1]!!.value }
+                        .firstOrNull { it.getDescriptor("intermediary") == fieldMatchWithoutClass.groups[2]!!.value }
+                        ?.getName("srg") ?: fieldMatchWithoutClass.groups[1]!!.value
+                    obj.addProperty(
+                        key, originalRef
+                            .replaceFirst(fieldMatchWithoutClass.groups[1]!!.value, replacementName)
+                            .replaceFirst(fieldMatchWithoutClass.groups[2]!!.value, fieldMatchWithoutClass.groups[2]!!.value.remapDescriptor {
                                 srg.classes.firstOrNull { def -> def.getName("intermediary") == it }?.getName("srg")
                                     ?: it
                             })
