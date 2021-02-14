@@ -10,7 +10,6 @@ import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import java.io.File
-import java.lang.IllegalStateException
 import java.nio.file.Path
 import java.util.*
 import java.util.function.Consumer
@@ -111,10 +110,15 @@ open class ArchitectPluginExtension(val project: Project) {
                         config.vmArgs += " -Darchitectury.properties=$propertiesTransformerFile"
                         config.vmArgs += " -Djdk.attach.allowAttachSelf=true"
                         if (architecturyJavaAgents.toList().size == 1) {
-                            architecturyJavaAgents.first().copyTo(agentFile, overwrite = true)
+                            if (!agentFile.exists() || agentFile.delete()) {
+                                architecturyJavaAgents.first().copyTo(agentFile, overwrite = true)
+                            }
                             config.vmArgs += " -javaagent:${agentFile.absolutePath}"
                         } else {
-                            throw IllegalStateException("Illegal Count of Architectury Java Agents! " + architecturyJavaAgents.toList().joinToString(", "))
+                            throw IllegalStateException(
+                                "Illegal Count of Architectury Java Agents! " + architecturyJavaAgents.toList()
+                                    .joinToString(", ")
+                            )
                         }
                     })
                 }
