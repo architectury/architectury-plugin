@@ -1,65 +1,21 @@
 package me.shedaniel.architect.plugin.transformers
 
-import me.shedaniel.architect.plugin.Transformer
-import me.shedaniel.architect.plugin.TransformerStepSkipped
-import me.shedaniel.architect.plugin.utils.validateJarFs
+import me.shedaniel.architectury.transformer.shadowed.impl.net.fabricmc.tinyremapper.IMappingProvider
+import me.shedaniel.architectury.transformer.shadowed.impl.net.fabricmc.tinyremapper.TinyUtils
+import me.shedaniel.architectury.transformer.transformers.base.TinyRemapperTransformer
 import net.fabricmc.loom.LoomGradleExtension
-import net.fabricmc.loom.util.LoggerFilter
-import net.fabricmc.tinyremapper.OutputConsumerPath
-import net.fabricmc.tinyremapper.TinyRemapper
-import net.fabricmc.tinyremapper.TinyUtils
 import org.gradle.api.Project
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
 
-object RemapMixinVariables : Transformer {
-    override fun invoke(project: Project, input: Path, output: Path) {
+class RemapMixinVariables(private val project: Project) : TinyRemapperTransformer {
+    override fun collectMappings(): MutableList<IMappingProvider> {
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
-        var remapperBuilder = TinyRemapper.newRemapper()
-        var requiresRemap = false
-        for (mixinMapFile in loomExtension.allMixinMappings) {
-            if (mixinMapFile.exists()) {
-                if (!requiresRemap) {
-                    requiresRemap = Files.readAllLines(mixinMapFile.toPath()).count { it.isNotBlank() } > 1
-                }
-                remapperBuilder = remapperBuilder.withMappings(
-                    TinyUtils.createTinyMappingProvider(
-                        mixinMapFile.toPath(),
-                        "named",
-                        "intermediary"
-                    )
-                )
-            }
-        }
-
-        if (!requiresRemap) {
-            Files.copy(input, output)
-            throw TransformerStepSkipped
-        }
-
-        val remapper = remapperBuilder.build()
-
-        val classpathFiles: Set<File> = LinkedHashSet(
-            project.configurations.getByName("compileClasspath").files
-        )
-        val classpath = classpathFiles.asSequence().map { obj: File -> obj.toPath() }.filter { p: Path ->
-            input != p && Files.exists(p)
-        }.toList().toTypedArray()
-
-        LoggerFilter.replaceSystemOut()
-        try {
-            project.validateJarFs(output)
-            OutputConsumerPath.Builder(output).build().use { outputConsumer ->
-                outputConsumer.addNonClassFiles(input)
-                remapper.readClassPath(*classpath)
-                remapper.readInputs(input)
-                remapper.apply(outputConsumer)
-            }
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to remap $input to $output", e)
-        } finally {
-            remapper.finish()
-        }
+        return loomExtension.allMixinMappings.asSequence().filter(File::exists).map {
+            TinyUtils.createTinyMappingProvider(
+                it.toPath(),
+                "named",
+                "intermediary"
+            )
+        }.toMutableList()
     }
 }

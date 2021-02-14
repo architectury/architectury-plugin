@@ -1,44 +1,57 @@
 package me.shedaniel.architect.plugin.transformers
 
-import me.shedaniel.architect.plugin.Transformer
-import me.shedaniel.architect.plugin.TransformerStepSkipped
+import com.google.gson.JsonObject
+import me.shedaniel.architectury.transformer.Transformer
+import me.shedaniel.architectury.transformer.TransformerStepSkipped
+import me.shedaniel.architectury.transformer.transformers.base.AssetEditTransformer
+import me.shedaniel.architectury.transformer.transformers.base.edit.AssetEditSink
+import me.shedaniel.architectury.transformer.transformers.base.edit.TransformerContext
 import net.fabricmc.loom.LoomGradleExtension
+import net.fabricmc.loom.LoomGradlePlugin
 import org.gradle.api.Project
+import java.io.ByteArrayInputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
 
-object AddRefmapName : Transformer {
-    override fun invoke(project: Project, input: Path, output: Path) {
-        Files.copy(input, output)
+class AddRefmapName(private val project: Project) : AssetEditTransformer {
+    override fun doEdit(context: TransformerContext, sink: AssetEditSink) {
         val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
-        var refmapHelperClass: Class<*>? = null
-        runCatching {
-            refmapHelperClass = Class.forName("net.fabricmc.loom.util.MixinRefmapHelper")
-        }.onFailure {
-            runCatching {
-                refmapHelperClass = Class.forName("net.fabricmc.loom.build.MixinRefmapHelper")
-            }.onFailure {
-                throw ClassNotFoundException("Failed to find MixinRefmapHelper!")
+        
+        val mixins = mutableSetOf<String>()
+        sink.handle { path, bytes ->
+            // Check JSON file in root directory
+            if (path.endsWith(".json") && !path.contains("/") && !path.contains("\\")) {
+                try {
+                    val json =
+                        LoomGradlePlugin.GSON.fromJson(ByteArrayInputStream(bytes).reader(), JsonObject::class.java)
+                    if (json != null) {
+                        val hasMixins = json.has("mixins") && json["mixins"].isJsonArray
+                        val hasClient = json.has("client") && json["client"].isJsonArray
+                        val hasServer = json.has("server") && json["server"].isJsonArray
+                        if (json.has("package") && (hasMixins || hasClient || hasServer)) {
+                            if (!json.has("refmap") || !json.has("minVersion")) {
+                                mixins.add(path)
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                }
             }
         }
+        mixins.forEach { path -> 
+            sink.transformFile(path) {
+                val json: JsonObject = LoomGradlePlugin.GSON.fromJson<JsonObject>(
+                    ByteArrayInputStream(it).reader(),
+                    JsonObject::class.java
+                )
 
-        val method = refmapHelperClass!!.getDeclaredMethod(
-            "addRefmapName",
-            String::class.java,
-            String::class.java,
-            Path::class.java
-        )
-        if (
-            method.invoke(
-                null,
-                loomExtension.getRefmapName(),
-                loomExtension.mixinJsonVersion,
-                output
-            ) as Boolean
-        ) {
-            project.logger.debug("Transformed mixin reference maps in output JAR!")
-        } else {
-            throw TransformerStepSkipped
+                if (!json.has("refmap")) {
+                    json.addProperty("refmap", loomExtension.getRefmapName())
+                }
+
+                LoomGradlePlugin.GSON.toJson(json).toByteArray()
+            }
         }
     }
 }

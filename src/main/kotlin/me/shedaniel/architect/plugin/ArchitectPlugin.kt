@@ -1,6 +1,8 @@
 package me.shedaniel.architect.plugin
 
-import me.shedaniel.architect.plugin.transformers.*
+import me.shedaniel.architect.plugin.transformers.AddRefmapName
+import me.shedaniel.architect.plugin.transformers.RemapMixinVariables
+import me.shedaniel.architectury.transformer.transformers.*
 import net.fabricmc.loom.util.LoggerFilter
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -43,49 +45,32 @@ class ArchitectPlugin : Plugin<Project> {
 
         project.extensions.create("architectury", ArchitectPluginExtension::class.java, project)
 
+        project.configurations.create("transformFabric")
+        project.configurations.create("transformForge")
+
         project.tasks.register("transformProductionFabric", TransformingTask::class.java) {
             it.group = "Architectury"
-            it(RemapMixinVariables)
-            it(TransformExpectPlatform)
-            it(TransformInjectables)
-            it(AddRefmapName)
-        }
-
-        project.tasks.register("transformDevelopmentFabric", TransformingTask::class.java) {
-            it.group = "Architectury"
-            it(GenerateFakeFabricModJson)
-            it(TransformExpectPlatform)
-            it(TransformInjectables)
+            it += RemapMixinVariables(project)
+            it += TransformExpectPlatform()
+            it += RemapInjectables()
+            it += AddRefmapName(project)
         }
 
         project.tasks.register("transformProductionForge", TransformingTask::class.java) {
             it.group = "Architectury"
-            it(RemapMixinVariables)
-            it(TransformExpectPlatform)
-            it(TransformInjectables)
-            it(AddRefmapName)
+            it += RemapMixinVariables(project)
+            it += TransformExpectPlatform()
+            it += RemapInjectables()
+            it += AddRefmapName(project)
 
-            it(TransformForgeBytecode)
-            it(RemoveFabricModJson)
-            it(TransformForgeEnvironment)
-            it(FixForgeMixin)
-        }
-
-        project.tasks.register("transformDevelopmentForge", TransformingTask::class.java) {
-            it.group = "Architectury"
-            it(TransformExpectPlatform)
-            it(TransformInjectables)
-
-            it(TransformForgeBytecode)
-            it(RemoveFabricModJson)
-            it(TransformForgeEnvironment)
-            it(GenerateFakeForgeMod)
-            it(FixForgeMixin)
+            it += TransformForgeAnnotations()
+            it += TransformForgeEnvironment()
+            it += FixForgeMixin()
         }
 
         project.repositories.apply {
             mavenCentral()
-            maven { it.url = URI("https://dl.bintray.com/shedaniel/cloth") }
+            maven { it.url = URI("https://maven.shedaniel.me/") }
         }
     }
 }
