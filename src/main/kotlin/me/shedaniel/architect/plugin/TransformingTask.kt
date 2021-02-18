@@ -28,6 +28,9 @@ open class TransformingTask : Jar() {
         val input: Path = this.input.asFile.get().toPath()
         val output: Path = this.archiveFile.get().asFile.toPath()
 
+        project.extensions.getByType(ArchitectPluginExtension::class.java).properties().forEach { (key, value) -> 
+            System.setProperty(key, value)
+        }
         Transform.runTransformers(input, output, transformers)
     }
 

@@ -1,7 +1,6 @@
 package me.shedaniel.architect.plugin
 
 import me.shedaniel.architect.plugin.transformers.AddRefmapName
-import me.shedaniel.architect.plugin.transformers.RemapMixinVariables
 import me.shedaniel.architectury.transformer.transformers.*
 import net.fabricmc.loom.util.LoggerFilter
 import org.gradle.api.Plugin
@@ -50,18 +49,17 @@ class ArchitectPlugin : Plugin<Project> {
 
         project.tasks.register("transformProductionFabric", TransformingTask::class.java) {
             it.group = "Architectury"
-            it += RemapMixinVariables(project)
+            it += RemapMixinVariables()
             it += TransformExpectPlatform()
             it += RemapInjectables()
-            it += AddRefmapName(project)
+            it += AddRefmapName()
         }
 
         project.tasks.register("transformProductionForge", TransformingTask::class.java) {
             it.group = "Architectury"
-            it += RemapMixinVariables(project)
             it += TransformExpectPlatform()
             it += RemapInjectables()
-            it += AddRefmapName(project)
+            it += AddRefmapName()
 
             it += TransformForgeAnnotations()
             it += TransformForgeEnvironment()

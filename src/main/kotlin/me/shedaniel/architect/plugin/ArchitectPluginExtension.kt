@@ -17,7 +17,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "2.0.13"
+    var transformerVersion = "2.0.15"
     var minecraft = ""
     var injectInjectables = true
     private val transforms = mutableMapOf<String, Transform>()
@@ -61,7 +61,6 @@ open class ArchitectPluginExtension(val project: Project) {
 
             val properties = Properties()
             properties().forEach { (key, value) ->
-                System.setProperty(key, value)
                 properties.setProperty(key, value)
             }
             propertiesTransformerFile.writer().use {
@@ -70,18 +69,24 @@ open class ArchitectPluginExtension(val project: Project) {
         }
     }
 
-    private fun properties(): Map<String, String> {
+    public fun properties(): Map<String, String> {
         val loom = project.extensions.findByType(LoomGradleExtension::class.java) ?: return mapOf()
         return mutableMapOf(
             BuiltinProperties.MIXIN_MAPPINGS to loom.allMixinMappings.joinToString(File.pathSeparator),
             BuiltinProperties.INJECT_INJECTABLES to injectInjectables.toString(),
             BuiltinProperties.UNIQUE_IDENTIFIER to project.projectUniqueIdentifier(),
-            BuiltinProperties.COMPILE_CLASSPATH to project.configurations.getByName("compileClasspath")
-                .joinToString(File.pathSeparator),
+            BuiltinProperties.COMPILE_CLASSPATH to getCompileClasspath().joinToString(File.pathSeparator),
             BuiltinProperties.MAPPINGS_WITH_SRG to loom.mappingsProvider.tinyMappingsWithSrg.toString(),
             BuiltinProperties.REFMAP_NAME to loom.refmapName,
             BuiltinProperties.MCMETA_VERSION to "4"
         )
+    }
+
+    private fun getCompileClasspath(): Iterable<File> {
+        return project.gradle.rootProject.project("common").configurations.getByName("compileClasspath")
+//        if (transformedLoom) {
+//        return project.configurations.getByName("architecturyTransformerClasspath")
+//        }
     }
 
     fun transform(name: String, action: Action<Transform>) {
@@ -90,6 +95,9 @@ open class ArchitectPluginExtension(val project: Project) {
                 project.configurations.create(transform.configName)
 
                 if (!transformedLoom) {
+                    project.configurations.create("architecturyTransformerClasspath") {
+                        it.extendsFrom(project.configurations.getByName("compileClasspath"))
+                    }
                     val architecturyJavaAgents = project.configurations.create("architecturyJavaAgents") {
                         project.configurations.getByName("runtimeOnly").extendsFrom(it)
                     }
@@ -98,6 +106,7 @@ open class ArchitectPluginExtension(val project: Project) {
                     with(project.dependencies) {
                         add("runtimeOnly", "me.shedaniel:architectury-transformer:$transformerVersion:runtime")
                         add("architecturyJavaAgents", "me.shedaniel:architectury-transformer:$transformerVersion:agent")
+                        add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")
                     }
 
                     val loom = project.extensions.getByType(LoomGradleExtension::class.java)

@@ -1,27 +1,24 @@
 package me.shedaniel.architect.plugin.transformers
 
 import com.google.gson.JsonObject
-import me.shedaniel.architectury.transformer.Transformer
-import me.shedaniel.architectury.transformer.TransformerStepSkipped
+import me.shedaniel.architectury.transformer.Transform
+import me.shedaniel.architectury.transformer.transformers.BuiltinProperties
 import me.shedaniel.architectury.transformer.transformers.base.AssetEditTransformer
 import me.shedaniel.architectury.transformer.transformers.base.edit.AssetEditSink
 import me.shedaniel.architectury.transformer.transformers.base.edit.TransformerContext
-import net.fabricmc.loom.LoomGradleExtension
+import me.shedaniel.architectury.transformer.util.Logger
 import net.fabricmc.loom.LoomGradlePlugin
-import org.gradle.api.Project
 import java.io.ByteArrayInputStream
-import java.nio.file.Files
-import java.nio.file.Path
-import java.util.*
 
-class AddRefmapName(private val project: Project) : AssetEditTransformer {
+class AddRefmapName : AssetEditTransformer {
     override fun doEdit(context: TransformerContext, sink: AssetEditSink) {
-        val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
-        
         val mixins = mutableSetOf<String>()
         sink.handle { path, bytes ->
             // Check JSON file in root directory
-            if (path.endsWith(".json") && !path.contains("/") && !path.contains("\\")) {
+            if (path.endsWith(".json") && !Transform.stripLoadingSlash(path)
+                    .contains("/") && !Transform.stripLoadingSlash(path).contains("\\")
+            ) {
+                Logger.debug("Checking whether $path is a mixin config.")
                 try {
                     val json =
                         LoomGradlePlugin.GSON.fromJson(ByteArrayInputStream(bytes).reader(), JsonObject::class.java)
@@ -39,7 +36,11 @@ class AddRefmapName(private val project: Project) : AssetEditTransformer {
                 }
             }
         }
-        mixins.forEach { path -> 
+        if (mixins.isNotEmpty()) {
+            Logger.debug("Found mixin config(s): " + java.lang.String.join(",", mixins))
+        }
+        val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME)
+        mixins.forEach { path ->
             sink.transformFile(path) {
                 val json: JsonObject = LoomGradlePlugin.GSON.fromJson<JsonObject>(
                     ByteArrayInputStream(it).reader(),
@@ -47,7 +48,8 @@ class AddRefmapName(private val project: Project) : AssetEditTransformer {
                 )
 
                 if (!json.has("refmap")) {
-                    json.addProperty("refmap", loomExtension.getRefmapName())
+                    Logger.debug("Injecting $refmap to $path")
+                    json.addProperty("refmap", refmap)
                 }
 
                 LoomGradlePlugin.GSON.toJson(json).toByteArray()
