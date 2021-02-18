@@ -17,7 +17,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "2.0.15"
+    var transformerVersion = "2.0.16"
     var minecraft = ""
     var injectInjectables = true
     private val transforms = mutableMapOf<String, Transform>()
@@ -243,12 +243,14 @@ private fun File.createEmptyJar() {
 
 data class Transform(val configName: String, val transformers: MutableList<Class<Transformer>> = mutableListOf()) {
     fun setupFabricTransforms() {
+        this += RuntimeMixinRefmapDetector::class.java
         this += GenerateFakeFabricMod::class.java
         this += TransformExpectPlatform::class.java
         this += RemapInjectables::class.java
     }
 
     fun setupForgeTransforms() {
+        this += RuntimeMixinRefmapDetector::class.java
         this += TransformExpectPlatform::class.java
         this += RemapInjectables::class.java
 
