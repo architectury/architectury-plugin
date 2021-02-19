@@ -114,15 +114,15 @@ open class ArchitectPluginExtension(val project: Project) {
                         val s = config.mainClass
                         config.mainClass = "me.shedaniel.architectury.transformer.TransformerRuntime"
                         mainClassTransformerFile.writeText(s)
-                        config.vmArgs += " -Darchitectury.main.class=$mainClassTransformerFile"
-                        config.vmArgs += " -Darchitectury.runtime.transformer=$runtimeTransformerFile"
-                        config.vmArgs += " -Darchitectury.properties=$propertiesTransformerFile"
+                        config.vmArgs += " -Darchitectury.main.class=${mainClassTransformerFile.absolutePath.encodeEscaped()}"
+                        config.vmArgs += " -Darchitectury.runtime.transformer=${runtimeTransformerFile.absolutePath.encodeEscaped()}"
+                        config.vmArgs += " -Darchitectury.properties=${propertiesTransformerFile.absolutePath.encodeEscaped()}"
                         config.vmArgs += " -Djdk.attach.allowAttachSelf=true"
                         if (architecturyJavaAgents.toList().size == 1) {
                             if (!agentFile.exists() || agentFile.delete()) {
                                 architecturyJavaAgents.first().copyTo(agentFile, overwrite = true)
                             }
-                            config.vmArgs += " -javaagent:${agentFile.absolutePath}"
+                            config.vmArgs += " -javaagent:${agentFile.absolutePath.encodeEscaped()}"
                         } else {
                             throw IllegalStateException(
                                 "Illegal Count of Architectury Java Agents! " + architecturyJavaAgents.toList()
@@ -135,6 +135,19 @@ open class ArchitectPluginExtension(val project: Project) {
         }.also {
             action.execute(it)
         }
+    }
+
+    private fun String.encodeEscaped(): String {
+        val ret = StringBuilder()
+        for (i in indices) {
+            val c = this[i]
+            if (c == '@' && i > 0 && this[i - 1] == '@' || c == ' ') {
+                ret.append(String.format("@@%04x", c.toInt()))
+            } else {
+                ret.append(c)
+            }
+        }
+        return ret.toString()
     }
 
     fun fabric() {
