@@ -69,7 +69,7 @@ open class ArchitectPluginExtension(val project: Project) {
         }
     }
 
-    public fun properties(): Map<String, String> {
+    fun properties(): Map<String, String> {
         val loom = project.extensions.findByType(LoomGradleExtension::class.java) ?: return mapOf()
         return mutableMapOf(
             BuiltinProperties.MIXIN_MAPPINGS to loom.allMixinMappings.joinToString(File.pathSeparator),
@@ -83,10 +83,11 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     private fun getCompileClasspath(): Iterable<File> {
-        return project.gradle.rootProject.project("common").configurations.getByName("compileClasspath")
-//        if (transformedLoom) {
-//        return project.configurations.getByName("architecturyTransformerClasspath")
-//        }
+        if (!transformedLoom) {
+            return project.configurations.getByName("compileClasspath")
+        }
+
+        return project.configurations.getByName("architecturyTransformerClasspath")
     }
 
     fun transform(name: String, action: Action<Transform>) {
@@ -106,7 +107,6 @@ open class ArchitectPluginExtension(val project: Project) {
                     with(project.dependencies) {
                         add("runtimeOnly", "me.shedaniel:architectury-transformer:$transformerVersion:runtime")
                         add("architecturyJavaAgents", "me.shedaniel:architectury-transformer:$transformerVersion:agent")
-                        add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")
                     }
 
                     val loom = project.extensions.getByType(LoomGradleExtension::class.java)
@@ -114,15 +114,15 @@ open class ArchitectPluginExtension(val project: Project) {
                         val s = config.mainClass
                         config.mainClass = "me.shedaniel.architectury.transformer.TransformerRuntime"
                         mainClassTransformerFile.writeText(s)
-                        config.vmArgs += " -Darchitectury.main.class=${mainClassTransformerFile.absolutePath.encodeEscaped()}"
-                        config.vmArgs += " -Darchitectury.runtime.transformer=${runtimeTransformerFile.absolutePath.encodeEscaped()}"
-                        config.vmArgs += " -Darchitectury.properties=${propertiesTransformerFile.absolutePath.encodeEscaped()}"
+                        config.vmArgs += " -Darchitectury.main.class=${mainClassTransformerFile.absolutePath.escapeSpaces()}"
+                        config.vmArgs += " -Darchitectury.runtime.transformer=${runtimeTransformerFile.absolutePath.escapeSpaces()}"
+                        config.vmArgs += " -Darchitectury.properties=${propertiesTransformerFile.absolutePath.escapeSpaces()}"
                         config.vmArgs += " -Djdk.attach.allowAttachSelf=true"
                         if (architecturyJavaAgents.toList().size == 1) {
                             if (!agentFile.exists() || agentFile.delete()) {
                                 architecturyJavaAgents.first().copyTo(agentFile, overwrite = true)
                             }
-                            config.vmArgs += " -javaagent:${agentFile.absolutePath.encodeEscaped()}"
+                            config.vmArgs += " -javaagent:${agentFile.absolutePath.escapeSpaces()}"
                         } else {
                             throw IllegalStateException(
                                 "Illegal Count of Architectury Java Agents! " + architecturyJavaAgents.toList()
@@ -137,17 +137,11 @@ open class ArchitectPluginExtension(val project: Project) {
         }
     }
 
-    private fun String.encodeEscaped(): String {
-        val ret = StringBuilder()
-        for (i in indices) {
-            val c = this[i]
-            if (c == '@' && i > 0 && this[i - 1] == '@' || c == ' ') {
-                ret.append(String.format("@@%04x", c.toInt()))
-            } else {
-                ret.append(c)
-            }
+    private fun String.escapeSpaces(): String {
+        if (any(Char::isWhitespace)) {
+            return "\"$this\""
         }
-        return ret.toString()
+        return this
     }
 
     fun fabric() {
