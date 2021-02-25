@@ -3,9 +3,9 @@ package me.shedaniel.architect.plugin
 import me.shedaniel.architect.plugin.utils.GradleSupport
 import me.shedaniel.architectury.transformer.Transform
 import me.shedaniel.architectury.transformer.Transformer
+import me.shedaniel.architectury.transformer.transformers.BuiltinProperties
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
@@ -19,6 +19,7 @@ import kotlin.time.ExperimentalTime
 open class TransformingTask : Jar() {
     @InputFile
     val input: RegularFileProperty = GradleSupport.getFileProperty(project)
+
     @Internal
     val transformers = mutableListOf<Transformer>()
 
@@ -28,9 +29,10 @@ open class TransformingTask : Jar() {
         val input: Path = this.input.asFile.get().toPath()
         val output: Path = this.archiveFile.get().asFile.toPath()
 
-        project.extensions.getByType(ArchitectPluginExtension::class.java).properties().forEach { (key, value) -> 
+        project.extensions.getByType(ArchitectPluginExtension::class.java).properties().forEach { (key, value) ->
             System.setProperty(key, value)
         }
+        System.setProperty(BuiltinProperties.LOCATION, project.file(".gradle").absolutePath)
         Transform.runTransformers(input, output, transformers)
     }
 
