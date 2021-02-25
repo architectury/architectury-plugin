@@ -17,7 +17,8 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "2.0.21"
+    var transformerVersion = "2.1.24"
+    var injectablesVersion = "1.0.4"
     var minecraft = ""
     var injectInjectables = true
     private val transforms = mutableMapOf<String, Transform>()
@@ -83,11 +84,7 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     private fun getCompileClasspath(): Iterable<File> {
-        if (!transformedLoom) {
-            return project.configurations.getByName("compileClasspath")
-        }
-
-        return project.configurations.getByName("architecturyTransformerClasspath")
+        return project.configurations.findByName("architecturyTransformerClasspath") ?: project.configurations.getByName("compileClasspath")
     }
 
     fun transform(name: String, action: Action<Transform>) {
@@ -96,9 +93,12 @@ open class ArchitectPluginExtension(val project: Project) {
                 project.configurations.create(transform.configName)
 
                 if (!transformedLoom) {
-                    project.configurations.create("architecturyTransformerClasspath") {
-                        it.extendsFrom(project.configurations.getByName("compileClasspath"))
-                    }
+                    var plsAddInjectables = false
+                    project.configurations.findByName("architecturyTransformerClasspath")
+                        ?: project.configurations.create("architecturyTransformerClasspath") {
+                            it.extendsFrom(project.configurations.getByName("compileClasspath"))
+                            plsAddInjectables = true
+                        }
                     val architecturyJavaAgents = project.configurations.create("architecturyJavaAgents") {
                         project.configurations.getByName("runtimeOnly").extendsFrom(it)
                     }
@@ -107,6 +107,12 @@ open class ArchitectPluginExtension(val project: Project) {
                     with(project.dependencies) {
                         add("runtimeOnly", "me.shedaniel:architectury-transformer:$transformerVersion:runtime")
                         add("architecturyJavaAgents", "me.shedaniel:architectury-transformer:$transformerVersion:agent")
+                        if (plsAddInjectables && injectInjectables) {
+                            add(
+                                "architecturyTransformerClasspath",
+                                "me.shedaniel:architectury-injectables:$injectablesVersion"
+                            )
+                        }
                     }
 
                     val loom = project.extensions.getByType(LoomGradleExtension::class.java)
@@ -184,8 +190,19 @@ open class ArchitectPluginExtension(val project: Project) {
     fun common(action: Action<CommonSettings>) {
         val settings = CommonSettings().also { action.execute(it) }
         if (injectInjectables) {
+            var plsAddInjectables = false
+            project.configurations.findByName("architecturyTransformerClasspath")
+                ?: project.configurations.create("architecturyTransformerClasspath") {
+                    it.extendsFrom(project.configurations.getByName("compileClasspath"))
+                    plsAddInjectables = true
+                }
+
             with(project.dependencies) {
-                add("compileOnly", "me.shedaniel:architectury-injectables:1.0.4")
+                add("compileOnly", "me.shedaniel:architectury-injectables:$injectablesVersion")
+
+                if (plsAddInjectables) {
+                    add("architecturyTransformerClasspath", "me.shedaniel:architectury-injectables:$injectablesVersion")
+                }
             }
         }
 

@@ -2,18 +2,18 @@ package me.shedaniel.architect.plugin.transformers
 
 import com.google.gson.JsonObject
 import me.shedaniel.architectury.transformer.Transform
+import me.shedaniel.architectury.transformer.input.OutputInterface
 import me.shedaniel.architectury.transformer.transformers.BuiltinProperties
 import me.shedaniel.architectury.transformer.transformers.base.AssetEditTransformer
-import me.shedaniel.architectury.transformer.transformers.base.edit.AssetEditSink
 import me.shedaniel.architectury.transformer.transformers.base.edit.TransformerContext
 import me.shedaniel.architectury.transformer.util.Logger
 import net.fabricmc.loom.LoomGradlePlugin
 import java.io.ByteArrayInputStream
 
 class AddRefmapName : AssetEditTransformer {
-    override fun doEdit(context: TransformerContext, sink: AssetEditSink) {
+    override fun doEdit(context: TransformerContext, output: OutputInterface) {
         val mixins = mutableSetOf<String>()
-        sink.handle { path, bytes ->
+        output.handle { path, bytes ->
             // Check JSON file in root directory
             if (path.endsWith(".json") && !Transform.stripLoadingSlash(path)
                     .contains("/") && !Transform.stripLoadingSlash(path).contains("\\")
@@ -41,7 +41,7 @@ class AddRefmapName : AssetEditTransformer {
         }
         val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME)
         mixins.forEach { path ->
-            sink.transformFile(path) {
+            output.modifyFile(path) {
                 val json: JsonObject = LoomGradlePlugin.GSON.fromJson<JsonObject>(
                     ByteArrayInputStream(it).reader(),
                     JsonObject::class.java
