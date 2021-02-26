@@ -4,6 +4,7 @@ import me.shedaniel.architect.plugin.utils.GradleSupport
 import me.shedaniel.architectury.transformer.Transform
 import me.shedaniel.architectury.transformer.Transformer
 import me.shedaniel.architectury.transformer.transformers.BuiltinProperties
+import me.shedaniel.architectury.transformer.util.Logger
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
@@ -33,6 +34,11 @@ open class TransformingTask : Jar() {
             System.setProperty(key, value)
         }
         System.setProperty(BuiltinProperties.LOCATION, project.file(".gradle").absolutePath)
+        Logger.debug("")
+        Logger.debug("============================")
+        Logger.debug("Transforming from $input to $output")
+        Logger.debug("============================")
+        Logger.debug("")
         Transform.runTransformers(input, output, transformers)
     }
 
