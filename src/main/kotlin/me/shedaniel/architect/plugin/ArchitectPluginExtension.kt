@@ -8,6 +8,7 @@ import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.task.RemapJarTask
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import java.io.File
 import java.nio.file.Path
@@ -108,10 +109,11 @@ open class ArchitectPluginExtension(val project: Project) {
                         add("runtimeOnly", "me.shedaniel:architectury-transformer:$transformerVersion:runtime")
                         add("architecturyJavaAgents", "me.shedaniel:architectury-transformer:$transformerVersion:agent")
                         if (plsAddInjectables && injectInjectables) {
-                            add(
-                                "architecturyTransformerClasspath",
-                                "me.shedaniel:architectury-injectables:$injectablesVersion"
-                            )
+                            add("architecturyTransformerClasspath", "me.shedaniel:architectury-injectables:$injectablesVersion")
+                            add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also {
+                                it as ModuleDependency
+                                it.isTransitive = false
+                            }
                         }
                     }
 
@@ -202,6 +204,10 @@ open class ArchitectPluginExtension(val project: Project) {
 
                 if (plsAddInjectables) {
                     add("architecturyTransformerClasspath", "me.shedaniel:architectury-injectables:$injectablesVersion")
+                    add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also { 
+                        it as ModuleDependency
+                        it.isTransitive = false
+                    }
                 }
             }
         }
