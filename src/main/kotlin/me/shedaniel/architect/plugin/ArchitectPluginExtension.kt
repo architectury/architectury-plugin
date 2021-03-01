@@ -227,7 +227,7 @@ open class ArchitectPluginExtension(val project: Project) {
             it as TransformingTask
 
             it.archiveClassifier.set("transformProductionFabric")
-            it.input.set(jarTask.archiveFile.get())
+            it.input.set(jarTask.archiveFile)
 
             project.artifacts.add("transformProductionFabric", it)
             it.dependsOn(jarTask)
@@ -238,7 +238,7 @@ open class ArchitectPluginExtension(val project: Project) {
             it as RemapJarTask
 
             it.archiveClassifier.set("")
-            it.input.set(jarTask.archiveFile.get())
+            it.input.set(jarTask.archiveFile)
             it.dependsOn(jarTask)
         } as RemapJarTask
 
@@ -246,7 +246,7 @@ open class ArchitectPluginExtension(val project: Project) {
             val transformProductionForgeTask = project.tasks.getByName("transformProductionForge") {
                 it as TransformingTask
 
-                it.input.set(jarTask.archiveFile.get())
+                it.input.set(jarTask.archiveFile)
                 it.archiveClassifier.set("transformProductionForge")
 
                 project.artifacts.add("transformProductionForge", it)
