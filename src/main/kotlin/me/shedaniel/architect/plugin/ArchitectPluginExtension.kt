@@ -232,16 +232,14 @@ open class ArchitectPluginExtension(val project: Project) {
             project.artifacts.add("transformProductionFabric", it)
             it.dependsOn(jarTask)
             buildTask.dependsOn(it)
-            it.outputs.upToDateWhen { false }
         } as TransformingTask
 
         val remapJarTask = project.tasks.getByName("remapJar") {
             it as RemapJarTask
 
             it.archiveClassifier.set("")
-            it.input.set(transformProductionFabricTask.archiveFile.get())
-            it.dependsOn(transformProductionFabricTask)
-            it.mustRunAfter(transformProductionFabricTask)
+            it.input.set(jarTask.archiveFile.get())
+            it.dependsOn(jarTask)
         } as RemapJarTask
 
         if (settings.forgeEnabled) {
@@ -254,7 +252,6 @@ open class ArchitectPluginExtension(val project: Project) {
                 project.artifacts.add("transformProductionForge", it)
                 it.dependsOn(jarTask)
                 buildTask.dependsOn(it)
-                it.outputs.upToDateWhen { false }
             } as TransformingTask
 
             transformProductionForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
