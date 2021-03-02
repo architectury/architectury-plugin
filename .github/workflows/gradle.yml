@@ -20,3 +20,4 @@ jobs:
         run: ./gradlew publish
         env:
           MAVEN_PASS: ${{ secrets.MAVEN_PASS }}
+          GITLAB_DEPLOY_TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}

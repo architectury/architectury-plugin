@@ -89,12 +89,24 @@ publishing {
     }
 
     repositories {
-        if (System.getenv("MAVEN_PASS") != null) {
+        if (System.getenv("MAVEN_PASS") != null && !System.getenv("MAVEN_PASS").isEmpty()) {
             maven {
                 url = "https://deploy.shedaniel.me/"
                 credentials {
                     username = "shedaniel"
                     password = System.getenv("MAVEN_PASS")
+                }
+            }
+        }
+        if (System.getenv("GITLAB_DEPLOY_TOKEN") != null && !System.getenv("GITLAB_DEPLOY_TOKEN").isEmpty()) {
+            maven {
+                url = "https://gitlab.com/api/v4/projects/24812556/packages/maven"
+                credentials(HttpHeaderCredentials) {
+                    name = "Deploy-Token"
+                    value = System.getenv("GITLAB_DEPLOY_TOKEN")
+                }
+                authentication {
+                    header(HttpHeaderAuthentication)
                 }
             }
         }
