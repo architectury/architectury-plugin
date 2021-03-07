@@ -9,7 +9,7 @@ plugins {
 group "me.shedaniel"
 
 def isSnapshot = System.getenv("PR_NUM") != null
-def runNumber = (System.getenv("GITHUB_RUN_NUMBER") == null ? (((short) new Random().nextInt()).abs() + 1000).toString() : System.getenv("GITHUB_RUN_NUMBER"))
+def runNumber = (System.getenv("GITHUB_RUN_NUMBER") == null ? "9999" : System.getenv("GITHUB_RUN_NUMBER"))
 
 if (!isSnapshot) {
     version = base_version + "." + runNumber
