@@ -79,10 +79,19 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 
 publishing {
     publications {
-        MyPublication(MavenPublication) {
+        plugin(MavenPublication) {
             groupId pluginId
             artifactId pluginId + '.gradle.plugin'
             
+            from components.java
+            artifact(sourcesJar)
+        }
+
+        pluginSnapshot(MavenPublication) {
+            groupId pluginId
+            artifactId pluginId + '.gradle.plugin'
+            version base_version + '-SNAPSHOT'
+
             from components.java
             artifact(sourcesJar)
         }
