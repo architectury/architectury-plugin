@@ -23,6 +23,9 @@ open class TransformingTask : Jar() {
 
     @Internal
     val transformers = mutableListOf<Transformer>()
+    
+    @Internal
+    var platform: String? = null
 
     @ExperimentalTime
     @TaskAction
@@ -30,7 +33,7 @@ open class TransformingTask : Jar() {
         val input: Path = this.input.asFile.get().toPath()
         val output: Path = this.archiveFile.get().asFile.toPath()
 
-        project.extensions.getByType(ArchitectPluginExtension::class.java).properties().forEach { (key, value) ->
+        project.extensions.getByType(ArchitectPluginExtension::class.java).properties(platform ?: throw NullPointerException("No Platform specified")).forEach { (key, value) ->
             System.setProperty(key, value)
         }
         System.setProperty(BuiltinProperties.LOCATION, project.file(".gradle").absolutePath)

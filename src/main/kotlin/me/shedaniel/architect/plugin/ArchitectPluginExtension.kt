@@ -59,19 +59,19 @@ open class ArchitectPluginExtension(val project: Project) {
                     .also {
                         runtimeTransformerFile.writeText(it)
                     }
-            }
 
-            val properties = Properties()
-            properties().forEach { (key, value) ->
-                properties.setProperty(key, value)
-            }
-            propertiesTransformerFile.writer().use {
-                properties.store(it, "Architectury Runtime Transformer Properties")
+                val properties = Properties()
+                properties(transforms.keys.first()).forEach { (key, value) ->
+                    properties.setProperty(key, value)
+                }
+                propertiesTransformerFile.writer().use {
+                    properties.store(it, "Architectury Runtime Transformer Properties")
+                }
             }
         }
     }
 
-    fun properties(): Map<String, String> {
+    fun properties(platform: String): Map<String, String> {
         val loom = project.extensions.findByType(LoomGradleExtension::class.java) ?: return mapOf()
         return mutableMapOf(
             BuiltinProperties.MIXIN_MAPPINGS to loom.allMixinMappings.joinToString(File.pathSeparator),
@@ -79,6 +79,7 @@ open class ArchitectPluginExtension(val project: Project) {
             BuiltinProperties.UNIQUE_IDENTIFIER to project.projectUniqueIdentifier(),
             BuiltinProperties.COMPILE_CLASSPATH to getCompileClasspath().joinToString(File.pathSeparator),
             BuiltinProperties.MAPPINGS_WITH_SRG to loom.mappingsProvider.tinyMappingsWithSrg.toString(),
+            "architectury.platform.name" to platform,
             BuiltinProperties.REFMAP_NAME to loom.refmapName,
             BuiltinProperties.MCMETA_VERSION to "4"
         )

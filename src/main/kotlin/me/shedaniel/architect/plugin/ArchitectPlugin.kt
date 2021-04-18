@@ -49,6 +49,7 @@ class ArchitectPlugin : Plugin<Project> {
 
         project.tasks.register("transformProductionFabric", TransformingTask::class.java) {
             it.group = "Architectury"
+            it.platform = "fabric"
             it += RemapMixinVariables()
             it += TransformExpectPlatform()
             it += RemapInjectables()
@@ -57,6 +58,7 @@ class ArchitectPlugin : Plugin<Project> {
 
         project.tasks.register("transformProductionForge", TransformingTask::class.java) {
             it.group = "Architectury"
+            it.platform = "forge"
             it += TransformExpectPlatform()
             it += RemapInjectables()
             it += AddRefmapName()
