@@ -54,6 +54,7 @@ class ArchitectPlugin : Plugin<Project> {
             it += TransformExpectPlatform()
             it += RemapInjectables()
             it += AddRefmapName()
+            it += TransformPlatformOnly()
         }
 
         project.tasks.register("transformProductionForge", TransformingTask::class.java) {
@@ -62,6 +63,7 @@ class ArchitectPlugin : Plugin<Project> {
             it += TransformExpectPlatform()
             it += RemapInjectables()
             it += AddRefmapName()
+            it += TransformPlatformOnly()
 
             it += TransformForgeAnnotations()
             it += TransformForgeEnvironment()

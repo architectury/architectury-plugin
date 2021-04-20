@@ -153,15 +153,19 @@ open class ArchitectPluginExtension(val project: Project) {
         return this
     }
 
-    fun fabric() {
+    @JvmOverloads
+    fun fabric(action: Action<Transform> = Action {}) {
         transform("fabric", Action {
             it.setupFabricTransforms()
+            action.execute(it)
         })
     }
 
-    fun forge() {
+    @JvmOverloads
+    fun forge(action: Action<Transform> = Action {}) {
         transform("forge", Action {
             it.setupForgeTransforms()
+            action.execute(it)
         })
     }
 
@@ -275,12 +279,14 @@ data class Transform(val configName: String, val transformers: MutableList<Class
         this += GenerateFakeFabricMod::class.java
         this += TransformExpectPlatform::class.java
         this += RemapInjectables::class.java
+        this += TransformPlatformOnly::class.java
     }
 
     fun setupForgeTransforms() {
         this += RuntimeMixinRefmapDetector::class.java
         this += TransformExpectPlatform::class.java
         this += RemapInjectables::class.java
+        this += TransformPlatformOnly::class.java
 
         this += TransformForgeAnnotations::class.java
         this += TransformForgeEnvironment::class.java
