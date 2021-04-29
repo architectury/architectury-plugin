@@ -72,7 +72,7 @@ class ArchitectPlugin : Plugin<Project> {
 
         project.repositories.apply {
             mavenCentral()
-            maven { it.url = URI("https://maven.shedaniel.me/") }
+            maven { it.url = URI("https://maven.architectury.dev/") }
         }
     }
 }
