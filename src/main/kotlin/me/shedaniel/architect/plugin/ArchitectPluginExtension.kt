@@ -3,6 +3,7 @@
 package me.shedaniel.architect.plugin
 
 import me.shedaniel.architectury.transformer.Transformer
+import me.shedaniel.architectury.transformer.input.OpenedOutputInterface
 import me.shedaniel.architectury.transformer.transformers.*
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.task.RemapJarTask
@@ -22,6 +23,7 @@ open class ArchitectPluginExtension(val project: Project) {
     var injectablesVersion = "1.0.8"
     var minecraft = ""
     var injectInjectables = true
+    var addCommonMarker = true
     private val transforms = mutableMapOf<String, Transform>()
     private var transformedLoom = false
     private val agentFile by lazy {
@@ -245,6 +247,19 @@ open class ArchitectPluginExtension(val project: Project) {
             it.archiveClassifier.set("")
             it.input.set(jarTask.archiveFile)
             it.dependsOn(jarTask)
+            it.doLast { _ ->
+                if (addCommonMarker) {
+                    val output = it.archiveFile.get().asFile
+
+                    try {
+                        OpenedOutputInterface.ofJar(output.toPath()).use { inter ->
+                            inter.addFile("architectury.common.marker", "")
+                        }
+                    } catch (t: Throwable) {
+                        project.logger.warn("Failed to add architectury.common.marker to ${output.absolutePath}")
+                    }
+                }
+            }
         } as RemapJarTask
 
         if (settings.forgeEnabled) {
