@@ -33,7 +33,8 @@ open class TransformingTask : Jar() {
         val input: Path = this.input.asFile.get().toPath()
         val output: Path = this.archiveFile.get().asFile.toPath()
 
-        project.extensions.getByType(ArchitectPluginExtension::class.java).properties(platform ?: throw NullPointerException("No Platform specified")).forEach { (key, value) ->
+        val extension = project.extensions.getByType(ArchitectPluginExtension::class.java)
+        extension.properties(platform ?: throw NullPointerException("No Platform specified")).forEach { (key, value) ->
             System.setProperty(key, value)
         }
         System.setProperty(BuiltinProperties.LOCATION, project.file(".gradle").absolutePath)
@@ -69,3 +70,5 @@ fun Project.projectUniqueIdentifier(): String {
     if (project.rootProject != project) name = project.rootProject.name + "_" + name
     return "architectury_inject_${name}_$id".filter { Character.isJavaIdentifierPart(it) }
 }
+
+class Epic : RuntimeException()
