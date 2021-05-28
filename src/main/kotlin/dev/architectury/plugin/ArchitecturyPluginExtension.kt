@@ -207,10 +207,10 @@ open class ArchitectPluginExtension(val project: Project) {
                 }
 
             with(project.dependencies) {
-                add("compileOnly", "me.shedaniel:architectury-injectables:$injectablesVersion")
+                add("compileOnly", "dev.architectury:architectury-injectables:$injectablesVersion")
 
                 if (plsAddInjectables) {
-                    add("architecturyTransformerClasspath", "me.shedaniel:architectury-injectables:$injectablesVersion")
+                    add("architecturyTransformerClasspath", "dev.architectury:architectury-injectables:$injectablesVersion")
                     add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also { 
                         it as ModuleDependency
                         it.isTransitive = false
