@@ -1,10 +1,10 @@
-package me.shedaniel.architect.plugin
+package dev.architectury.plugin
 
-import me.shedaniel.architect.plugin.utils.GradleSupport
-import me.shedaniel.architectury.transformer.Transform
-import me.shedaniel.architectury.transformer.Transformer
-import me.shedaniel.architectury.transformer.transformers.BuiltinProperties
-import me.shedaniel.architectury.transformer.util.Logger
+import dev.architectury.plugin.utils.GradleSupport
+import dev.architectury.transformer.Transform
+import dev.architectury.transformer.Transformer
+import dev.architectury.transformer.transformers.BuiltinProperties
+import dev.architectury.transformer.util.Logger
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
@@ -23,7 +23,7 @@ open class TransformingTask : Jar() {
 
     @Internal
     val transformers = mutableListOf<Transformer>()
-    
+
     @Internal
     var platform: String? = null
 

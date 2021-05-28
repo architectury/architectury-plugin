@@ -1,10 +1,10 @@
 @file:Suppress("UnstableApiUsage")
 
-package me.shedaniel.architect.plugin
+package dev.architectury.plugin
 
-import me.shedaniel.architectury.transformer.Transformer
-import me.shedaniel.architectury.transformer.input.OpenedOutputInterface
-import me.shedaniel.architectury.transformer.transformers.*
+import dev.architectury.transformer.Transformer
+import dev.architectury.transformer.input.OpenedOutputInterface
+import dev.architectury.transformer.transformers.*
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.task.RemapJarTask
 import org.gradle.api.Action
@@ -19,8 +19,8 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "2.4.44"
-    var injectablesVersion = "1.0.8"
+    var transformerVersion = "3.0.45"
+    var injectablesVersion = "1.0.10"
     var minecraft = ""
     var injectInjectables = true
     var addCommonMarker = true
@@ -109,10 +109,10 @@ open class ArchitectPluginExtension(val project: Project) {
                     transformedLoom = true
 
                     with(project.dependencies) {
-                        add("runtimeOnly", "me.shedaniel:architectury-transformer:$transformerVersion:runtime")
-                        add("architecturyJavaAgents", "me.shedaniel:architectury-transformer:$transformerVersion:agent")
+                        add("runtimeOnly", "dev.architectury:architectury-transformer:$transformerVersion:runtime")
+                        add("architecturyJavaAgents", "dev.architectury:architectury-transformer:$transformerVersion:agent")
                         if (plsAddInjectables && injectInjectables) {
-                            add("architecturyTransformerClasspath", "me.shedaniel:architectury-injectables:$injectablesVersion")
+                            add("architecturyTransformerClasspath", "dev.architectury:architectury-injectables:$injectablesVersion")
                             add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also {
                                 it as ModuleDependency
                                 it.isTransitive = false
@@ -123,7 +123,7 @@ open class ArchitectPluginExtension(val project: Project) {
                     val loom = project.extensions.getByType(LoomGradleExtension::class.java)
                     loom.settingsPostEdit.add(Consumer { config ->
                         val s = config.mainClass
-                        config.mainClass = "me.shedaniel.architectury.transformer.TransformerRuntime"
+                        config.mainClass = "dev.architectury.transformer.TransformerRuntime"
                         mainClassTransformerFile.writeText(s)
                         config.vmArgs += " -Darchitectury.main.class=${mainClassTransformerFile.absolutePath.escapeSpaces()}"
                         config.vmArgs += " -Darchitectury.runtime.transformer=${runtimeTransformerFile.absolutePath.escapeSpaces()}"

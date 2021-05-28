@@ -1,12 +1,12 @@
-package me.shedaniel.architect.plugin.transformers
+package dev.architectury.plugin.transformers
 
 import com.google.gson.JsonObject
-import me.shedaniel.architectury.transformer.Transform
-import me.shedaniel.architectury.transformer.input.OutputInterface
-import me.shedaniel.architectury.transformer.transformers.BuiltinProperties
-import me.shedaniel.architectury.transformer.transformers.base.AssetEditTransformer
-import me.shedaniel.architectury.transformer.transformers.base.edit.TransformerContext
-import me.shedaniel.architectury.transformer.util.Logger
+import dev.architectury.transformer.Transform
+import dev.architectury.transformer.input.OutputInterface
+import dev.architectury.transformer.transformers.BuiltinProperties
+import dev.architectury.transformer.transformers.base.AssetEditTransformer
+import dev.architectury.transformer.transformers.base.edit.TransformerContext
+import dev.architectury.transformer.util.Logger
 import net.fabricmc.loom.LoomGradlePlugin
 import java.io.ByteArrayInputStream
 
