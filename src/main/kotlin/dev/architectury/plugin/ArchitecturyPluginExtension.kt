@@ -19,7 +19,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "4.0.48"
+    var transformerVersion = "4.0.49"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     var injectInjectables = true
