@@ -80,12 +80,18 @@ open class ArchitectPluginExtension(val project: Project) {
             BuiltinProperties.INJECT_INJECTABLES to injectInjectables.toString(),
             BuiltinProperties.UNIQUE_IDENTIFIER to project.projectUniqueIdentifier(),
             BuiltinProperties.COMPILE_CLASSPATH to getCompileClasspath().joinToString(File.pathSeparator),
-            BuiltinProperties.MAPPINGS_WITH_SRG to loom.mappingsProvider.tinyMappingsWithSrg.toString(),
+            BuiltinProperties.MAPPINGS_WITH_SRG to loom.tinyMappingsWithSrg.toString(),
             "architectury.platform.name" to platform,
             BuiltinProperties.REFMAP_NAME to loom.refmapName,
             BuiltinProperties.MCMETA_VERSION to "4"
         )
     }
+
+    private val LoomGradleExtension.tinyMappingsWithSrg: Path
+        get() {
+            val mappingsProvider = LoomGradleExtension::class.java.getDeclaredMethod("getMappingsProvider").invoke(this)
+            return mappingsProvider.javaClass.getField("tinyMappingsWithSrg").get(mappingsProvider) as Path
+        }
 
     private fun getCompileClasspath(): Iterable<File> {
         return project.configurations.findByName("architecturyTransformerClasspath") ?: project.configurations.getByName("compileClasspath")
@@ -211,7 +217,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
                 if (plsAddInjectables) {
                     add("architecturyTransformerClasspath", "dev.architectury:architectury-injectables:$injectablesVersion")
-                    add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also { 
+                    add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also {
                         it as ModuleDependency
                         it.isTransitive = false
                     }
