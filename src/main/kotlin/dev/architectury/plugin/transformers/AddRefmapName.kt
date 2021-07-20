@@ -1,5 +1,6 @@
 package dev.architectury.plugin.transformers
 
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import dev.architectury.transformer.Transform
 import dev.architectury.transformer.input.OutputInterface
@@ -7,10 +8,10 @@ import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.transformers.base.AssetEditTransformer
 import dev.architectury.transformer.transformers.base.edit.TransformerContext
 import dev.architectury.transformer.util.Logger
-import net.fabricmc.loom.LoomGradlePlugin
 import java.io.ByteArrayInputStream
 
 class AddRefmapName : AssetEditTransformer {
+    val gson = GsonBuilder().setPrettyPrinting().create()
     override fun doEdit(context: TransformerContext, output: OutputInterface) {
         val mixins = mutableSetOf<String>()
         output.handle { path, bytes ->
@@ -20,8 +21,7 @@ class AddRefmapName : AssetEditTransformer {
             ) {
                 Logger.debug("Checking whether $path is a mixin config.")
                 try {
-                    val json =
-                        LoomGradlePlugin.GSON.fromJson(ByteArrayInputStream(bytes).reader(), JsonObject::class.java)
+                    val json = gson.fromJson(ByteArrayInputStream(bytes).reader(), JsonObject::class.java)
                     if (json != null) {
                         val hasMixins = json.has("mixins") && json["mixins"].isJsonArray
                         val hasClient = json.has("client") && json["client"].isJsonArray
@@ -42,7 +42,7 @@ class AddRefmapName : AssetEditTransformer {
         val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME)
         mixins.forEach { path ->
             output.modifyFile(path) {
-                val json: JsonObject = LoomGradlePlugin.GSON.fromJson<JsonObject>(
+                val json: JsonObject = gson.fromJson<JsonObject>(
                     ByteArrayInputStream(it).reader(),
                     JsonObject::class.java
                 )
@@ -52,7 +52,7 @@ class AddRefmapName : AssetEditTransformer {
                     json.addProperty("refmap", refmap)
                 }
 
-                LoomGradlePlugin.GSON.toJson(json).toByteArray()
+                gson.toJson(json).toByteArray()
             }
         }
     }

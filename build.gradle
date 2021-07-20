@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     id "org.jetbrains.kotlin.jvm" version "1.3.72"
     id "java"
@@ -33,18 +35,38 @@ repositories {
 
 apply plugin: 'java-gradle-plugin'
 
+sourceSets {
+    loom06 {
+        java {
+            compileClasspath += main.compileClasspath
+            runtimeClasspath += main.runtimeClasspath
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+        }
+    }
+    loom09 {
+        java {
+            compileClasspath += main.compileClasspath
+            runtimeClasspath += main.runtimeClasspath
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+        }
+    }
+}
+
 dependencies {
     implementation gradleApi()
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.72"
     implementation "org.jetbrains.kotlin:kotlin-reflect:1.3.72"
     implementation "gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:0.10"
     implementation "dev.architectury:architectury-transformer:$transformer_version"
-    compileOnly "me.shedaniel:forgified-fabric-loom:$loom_version"
+    loom06CompileOnly "me.shedaniel:forgified-fabric-loom:$loom_version_old"
+    loom09CompileOnly "dev.architectury:architectury-loom:$loom_version_new"
     implementation "dev.architectury:tiny-remapper:1.1.0"
     implementation "com.google.code.gson:gson:2.8.5"
 }
 
-compileKotlin {
+tasks.withType(KotlinCompile) {
     kotlinOptions {
         jvmTarget = "1.8"
         freeCompilerArgs = ['-Xjvm-default=compatibility']
@@ -55,6 +77,8 @@ jar {
     manifest {
         attributes 'Implementation-Version': project.version
     }
+
+    from sourceSets.loom06.output + sourceSets.loom09.output
 }
 
 gradlePlugin {

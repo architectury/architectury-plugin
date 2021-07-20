@@ -2,7 +2,7 @@ package dev.architectury.plugin
 
 import dev.architectury.plugin.transformers.AddRefmapName
 import dev.architectury.transformer.transformers.*
-import net.fabricmc.loom.util.LoggerFilter
+import dev.architectury.transformer.util.LoggerFilter
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionAware

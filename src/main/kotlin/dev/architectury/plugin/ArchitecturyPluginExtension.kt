@@ -2,19 +2,18 @@
 
 package dev.architectury.plugin
 
+import dev.architectury.plugin.loom.LoomInterface
 import dev.architectury.transformer.Transformer
 import dev.architectury.transformer.input.OpenedOutputInterface
 import dev.architectury.transformer.transformers.*
-import net.fabricmc.loom.LoomGradleExtension
-import net.fabricmc.loom.task.RemapJarTask
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
+import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.nio.file.Path
 import java.util.*
-import java.util.function.Consumer
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
@@ -46,6 +45,17 @@ open class ArchitectPluginExtension(val project: Project) {
             it.parentFile.mkdirs()
         }
     }
+    
+    private val loom: LoomInterface by lazy {
+        try {
+            Class.forName("net.fabricmc.loom.api.LoomGradleExtensionAPI")
+            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface09").getDeclaredConstructor(Project::class.java)
+                .newInstance(project) as LoomInterface
+        } catch (ignored: ClassNotFoundException) {
+            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface06").getDeclaredConstructor(Project::class.java)
+                .newInstance(project) as LoomInterface
+        }
+    }
 
     init {
         project.afterEvaluate {
@@ -74,7 +84,6 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun properties(platform: String): Map<String, String> {
-        val loom = project.extensions.findByType(LoomGradleExtension::class.java) ?: return mapOf()
         return mutableMapOf(
             BuiltinProperties.MIXIN_MAPPINGS to loom.allMixinMappings.joinToString(File.pathSeparator),
             BuiltinProperties.INJECT_INJECTABLES to injectInjectables.toString(),
@@ -86,12 +95,6 @@ open class ArchitectPluginExtension(val project: Project) {
             BuiltinProperties.MCMETA_VERSION to "4"
         )
     }
-
-    private val LoomGradleExtension.tinyMappingsWithSrg: Path
-        get() {
-            val mappingsProvider = LoomGradleExtension::class.java.getDeclaredMethod("getMappingsProvider").invoke(this)
-            return mappingsProvider.javaClass.getField("tinyMappingsWithSrg").get(mappingsProvider) as Path
-        }
 
     private fun getCompileClasspath(): Iterable<File> {
         return project.configurations.findByName("architecturyTransformerClasspath") ?: project.configurations.getByName("compileClasspath")
@@ -126,8 +129,7 @@ open class ArchitectPluginExtension(val project: Project) {
                         }
                     }
 
-                    val loom = project.extensions.getByType(LoomGradleExtension::class.java)
-                    loom.settingsPostEdit.add(Consumer { config ->
+                    loom.settingsPostEdit { config ->
                         val s = config.mainClass
                         config.mainClass = "dev.architectury.transformer.TransformerRuntime"
                         mainClassTransformerFile.writeText(s)
@@ -146,7 +148,7 @@ open class ArchitectPluginExtension(val project: Project) {
                                     .joinToString(", ")
                             )
                         }
-                    })
+                    }
                 }
             }
         }.also {
@@ -186,10 +188,7 @@ open class ArchitectPluginExtension(val project: Project) {
     )
 
     fun platformSetupLoomIde() {
-        val loomExtension = project.extensions.getByType(LoomGradleExtension::class.java)
-        loomExtension.runConfigs.forEach { it.isIdeConfigGenerated = true }
-        loomExtension.runConfigs.whenObjectAdded { it.isIdeConfigGenerated = true }
-        loomExtension.addTaskBeforeRun("\$PROJECT_DIR\$/${project.name}:classes")
+        loom.setIdeConfigGenerated()
     }
 
     fun common(forgeEnabled: Boolean) {
@@ -248,10 +247,10 @@ open class ArchitectPluginExtension(val project: Project) {
         } as TransformingTask
 
         val remapJarTask = project.tasks.getByName("remapJar") {
-            it as RemapJarTask
+            it as Jar
 
             it.archiveClassifier.set("")
-            it.input.set(jarTask.archiveFile)
+            loom.setRemapJarInput(it, jarTask.archiveFile)
             it.dependsOn(jarTask)
             it.doLast { _ ->
                 if (addCommonMarker) {
@@ -266,7 +265,7 @@ open class ArchitectPluginExtension(val project: Project) {
                     }
                 }
             }
-        } as RemapJarTask
+        } as Jar
 
         if (settings.forgeEnabled) {
             val transformProductionForgeTask = project.tasks.getByName("transformProductionForge") {
@@ -282,7 +281,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
             transformProductionForgeTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
 
-            project.extensions.getByType(LoomGradleExtension::class.java).generateSrgTiny = true
+            loom.generateSrgTiny = true
         }
 
         transformProductionFabricTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
