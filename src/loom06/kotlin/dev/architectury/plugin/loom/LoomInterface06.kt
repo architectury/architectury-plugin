@@ -20,7 +20,7 @@ class LoomInterface06(private val project: Project) : LoomInterface {
 
     override val tinyMappingsWithSrg: Path
         get() {
-            val mappingsProvider = LoomGradleExtension::class.java.getDeclaredMethod("getMappingsProvider").invoke(this)
+            val mappingsProvider = LoomGradleExtension::class.java.getDeclaredMethod("getMappingsProvider").invoke(extension)
             return mappingsProvider.javaClass.getField("tinyMappingsWithSrg").get(mappingsProvider) as Path
         }
 
