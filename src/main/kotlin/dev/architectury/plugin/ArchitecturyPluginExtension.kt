@@ -3,22 +3,32 @@
 package dev.architectury.plugin
 
 import dev.architectury.plugin.loom.LoomInterface
+import dev.architectury.plugin.transformers.AddRefmapName
 import dev.architectury.transformer.Transformer
 import dev.architectury.transformer.input.OpenedOutputInterface
+import dev.architectury.transformer.shadowed.impl.com.google.common.hash.Hashing
+import dev.architectury.transformer.shadowed.impl.com.google.gson.Gson
+import dev.architectury.transformer.shadowed.impl.com.google.gson.JsonObject
 import dev.architectury.transformer.transformers.*
+import dev.architectury.transformer.transformers.properties.TransformersWriter
+import dev.architectury.transformer.util.TransformerPair
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.jvm.tasks.Jar
 import java.io.File
+import java.io.StringWriter
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.*
+import java.util.function.BiConsumer
+import java.util.function.Function
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "4.0.49"
+    var transformerVersion = "4.1.50"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     var injectInjectables = true
@@ -45,14 +55,16 @@ open class ArchitectPluginExtension(val project: Project) {
             it.parentFile.mkdirs()
         }
     }
-    
+
     private val loom: LoomInterface by lazy {
         try {
             Class.forName("net.fabricmc.loom.api.LoomGradleExtensionAPI")
-            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface09").getDeclaredConstructor(Project::class.java)
+            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface09")
+                .getDeclaredConstructor(Project::class.java)
                 .newInstance(project) as LoomInterface
         } catch (ignored: ClassNotFoundException) {
-            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface06").getDeclaredConstructor(Project::class.java)
+            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface06")
+                .getDeclaredConstructor(Project::class.java)
                 .newInstance(project) as LoomInterface
         }
     }
@@ -60,17 +72,20 @@ open class ArchitectPluginExtension(val project: Project) {
     init {
         project.afterEvaluate {
             if (transforms.isNotEmpty()) {
-                val transformPaths = mutableMapOf<Path, List<Class<Transformer>>>()
-                for (transform in transforms.values) {
-                    project.configurations.getByName(transform.configName).forEach {
-                        transformPaths[it.toPath()] = transform.transformers
+                StringWriter().also { strWriter ->
+                    TransformersWriter(strWriter).use { writer ->
+                        for (transform in transforms.values) {
+                            project.configurations.getByName(transform.configName).forEach { file ->
+                                transform.transformers.map { it.apply(file.toPath()) }
+                                    .forEach { pair ->
+                                        writer.write(file.toPath(), pair.clazz, pair.properties)
+                                    }
+                            }
+                        }
                     }
+
+                    runtimeTransformerFile.writeText(strWriter.toString())
                 }
-                transformPaths.asSequence().flatMap { it.value.asSequence().map { c -> it.key to c } }
-                    .joinToString(File.pathSeparator) { "${it.first}|${it.second.name}" }
-                    .also {
-                        runtimeTransformerFile.writeText(it)
-                    }
 
                 val properties = Properties()
                 properties(transforms.keys.first()).forEach { (key, value) ->
@@ -97,12 +112,13 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     private fun getCompileClasspath(): Iterable<File> {
-        return project.configurations.findByName("architecturyTransformerClasspath") ?: project.configurations.getByName("compileClasspath")
+        return project.configurations.findByName("architecturyTransformerClasspath")
+            ?: project.configurations.getByName("compileClasspath")
     }
 
     fun transform(name: String, action: Action<Transform>) {
         transforms.getOrPut(name) {
-            Transform("development" + name.capitalize()).also { transform ->
+            Transform(project, "development" + name.capitalize()).also { transform ->
                 project.configurations.create(transform.configName)
 
                 if (!transformedLoom) {
@@ -119,9 +135,15 @@ open class ArchitectPluginExtension(val project: Project) {
 
                     with(project.dependencies) {
                         add("runtimeOnly", "dev.architectury:architectury-transformer:$transformerVersion:runtime")
-                        add("architecturyJavaAgents", "dev.architectury:architectury-transformer:$transformerVersion:agent")
+                        add(
+                            "architecturyJavaAgents",
+                            "dev.architectury:architectury-transformer:$transformerVersion:agent"
+                        )
                         if (plsAddInjectables && injectInjectables) {
-                            add("architecturyTransformerClasspath", "dev.architectury:architectury-injectables:$injectablesVersion")
+                            add(
+                                "architecturyTransformerClasspath",
+                                "dev.architectury:architectury-injectables:$injectablesVersion"
+                            )
                             add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also {
                                 it as ModuleDependency
                                 it.isTransitive = false
@@ -215,7 +237,10 @@ open class ArchitectPluginExtension(val project: Project) {
                 add("compileOnly", "dev.architectury:architectury-injectables:$injectablesVersion")
 
                 if (plsAddInjectables) {
-                    add("architecturyTransformerClasspath", "dev.architectury:architectury-injectables:$injectablesVersion")
+                    add(
+                        "architecturyTransformerClasspath",
+                        "dev.architectury:architectury-injectables:$injectablesVersion"
+                    )
                     add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also {
                         it as ModuleDependency
                         it.isTransitive = false
@@ -224,6 +249,7 @@ open class ArchitectPluginExtension(val project: Project) {
             }
         }
 
+        addTasks()
         if (settings.forgeEnabled) {
             project.configurations.create("transformProductionForge")
         }
@@ -286,6 +312,47 @@ open class ArchitectPluginExtension(val project: Project) {
 
         transformProductionFabricTask.archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
     }
+
+    private fun addTasks() {
+        project.tasks.register("transformProductionFabric", TransformingTask::class.java) {
+            it.group = "Architectury"
+            it.platform = "fabric"
+            it += RemapMixinVariables()
+            it.add(TransformExpectPlatform()) { file ->
+                this[BuiltinProperties.UNIQUE_IDENTIFIER] =
+                    (project.projectUniqueIdentifier() + "_" + file.toString()
+                        .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+            }
+            it.add(RemapInjectables()) { file ->
+                this[BuiltinProperties.UNIQUE_IDENTIFIER] =
+                    (project.projectUniqueIdentifier() + "_" + file.toString()
+                        .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+            }
+            it += AddRefmapName()
+            it += TransformPlatformOnly()
+        }
+
+        project.tasks.register("transformProductionForge", TransformingTask::class.java) {
+            it.group = "Architectury"
+            it.platform = "forge"
+            it.add(TransformExpectPlatform()) { file ->
+                this[BuiltinProperties.UNIQUE_IDENTIFIER] =
+                    (project.projectUniqueIdentifier() + "_" + file.toString()
+                        .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+            }
+            it.add(RemapInjectables()) { file ->
+                this[BuiltinProperties.UNIQUE_IDENTIFIER] =
+                    (project.projectUniqueIdentifier() + "_" + file.toString()
+                        .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+            }
+            it += AddRefmapName()
+            it += TransformPlatformOnly()
+
+            it += TransformForgeAnnotations()
+            it += TransformForgeEnvironment()
+            it += FixForgeMixin()
+        }
+    }
 }
 
 private fun File.createEmptyJar() {
@@ -293,19 +360,39 @@ private fun File.createEmptyJar() {
     JarOutputStream(outputStream(), Manifest()).close()
 }
 
-data class Transform(val configName: String, val transformers: MutableList<Class<Transformer>> = mutableListOf()) {
+data class Transform(
+    val project: Project,
+    val configName: String,
+    val transformers: MutableList<Function<Path, TransformerPair>> = mutableListOf()
+) {
     fun setupFabricTransforms() {
         this += RuntimeMixinRefmapDetector::class.java
         this += GenerateFakeFabricMod::class.java
-        this += TransformExpectPlatform::class.java
-        this += RemapInjectables::class.java
+        add(TransformExpectPlatform::class.java) { file ->
+            this[BuiltinProperties.UNIQUE_IDENTIFIER] =
+                (project.projectUniqueIdentifier() + "_" + file.toString()
+                    .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+        }
+        add(RemapInjectables::class.java) { file ->
+            this[BuiltinProperties.UNIQUE_IDENTIFIER] =
+                (project.projectUniqueIdentifier() + "_" + file.toString()
+                    .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+        }
         this += TransformPlatformOnly::class.java
     }
 
     fun setupForgeTransforms() {
         this += RuntimeMixinRefmapDetector::class.java
-        this += TransformExpectPlatform::class.java
-        this += RemapInjectables::class.java
+        add(TransformExpectPlatform::class.java) { file ->
+            this[BuiltinProperties.UNIQUE_IDENTIFIER] =
+                (project.projectUniqueIdentifier() + "_" + file.toString()
+                    .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+        }
+        add(RemapInjectables::class.java) { file ->
+            this[BuiltinProperties.UNIQUE_IDENTIFIER] =
+                (project.projectUniqueIdentifier() + "_" + file.toString()
+                    .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+        }
         this += TransformPlatformOnly::class.java
 
         this += TransformForgeAnnotations::class.java
@@ -314,9 +401,38 @@ data class Transform(val configName: String, val transformers: MutableList<Class
         this += FixForgeMixin::class.java
     }
 
-    operator fun <T : Transformer> plusAssign(transformer: Class<T>) {
-        transformers.add(transformer as Class<Transformer>)
+    operator fun plusAssign(transformer: TransformerPair) {
+        transformers.add(Function { transformer })
     }
 
-    fun <T : Transformer> add(transformer: Class<T>) = plusAssign(transformer as Class<Transformer>)
+    operator fun <T : Transformer> plusAssign(transformer: Class<T>) {
+        this += TransformerPair(transformer, null)
+    }
+
+    fun <T : Transformer> add(transformer: Class<T>) {
+        this += TransformerPair(transformer, null)
+    }
+
+    fun <T : Transformer> add(transformer: Class<T>, properties: JsonObject) =
+        plusAssign(TransformerPair(transformer, properties))
+
+    fun <T : Transformer> add(transformer: Class<T>, config: BiConsumer<Path, MutableMap<String, Any>>) {
+        transformers.add(Function { file ->
+            val properties = mutableMapOf<String, Any>()
+            config.accept(file, properties)
+            TransformerPair(transformer, Gson().toJsonTree(properties).asJsonObject)
+        })
+    }
+
+    fun <T : Transformer> add(transformer: Class<T>, config: MutableMap<String, Any>.(file: Path) -> Unit) {
+        add(transformer, BiConsumer { file, map ->
+            config(map, file)
+        })
+    }
 }
+
+fun String.legalizePackageName(): String =
+    filter { Character.isJavaIdentifierPart(it) }
+
+private val ByteArray.sha256: String
+    get() = Hashing.sha256().hashBytes(this).toString()

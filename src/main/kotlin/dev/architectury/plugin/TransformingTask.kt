@@ -3,10 +3,13 @@ package dev.architectury.plugin
 import dev.architectury.plugin.utils.GradleSupport
 import dev.architectury.transformer.Transform
 import dev.architectury.transformer.Transformer
+import dev.architectury.transformer.shadowed.impl.com.google.gson.Gson
 import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.util.Logger
+import dev.architectury.transformer.util.TransformerPair
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
@@ -14,6 +17,7 @@ import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.nio.file.Path
 import java.util.*
+import java.util.function.BiConsumer
 import kotlin.properties.Delegates
 import kotlin.time.ExperimentalTime
 
@@ -22,7 +26,7 @@ open class TransformingTask : Jar() {
     val input: RegularFileProperty = GradleSupport.getFileProperty(project)
 
     @Internal
-    val transformers = mutableListOf<Transformer>()
+    val transformers: ListProperty<Transformer> = project.objects.listProperty(Transformer::class.java)
 
     @Internal
     var platform: String? = null
@@ -43,7 +47,7 @@ open class TransformingTask : Jar() {
         Logger.debug("Transforming from $input to $output")
         Logger.debug("============================")
         Logger.debug("")
-        Transform.runTransformers(input, output, transformers)
+        Transform.runTransformers(input, output, transformers.get())
     }
 
     operator fun invoke(transformer: Transformer) {
@@ -52,6 +56,21 @@ open class TransformingTask : Jar() {
 
     operator fun plusAssign(transformer: Transformer) {
         transformers.add(transformer)
+    }
+
+    fun add(transformer: Transformer, config: BiConsumer<Path, MutableMap<String, Any>>) {
+        transformers.add(project.provider {
+            val properties = mutableMapOf<String, Any>()
+            config.accept(input.asFile.get().toPath(), properties)
+            transformer.supplyProperties(Gson().toJsonTree(properties).asJsonObject)
+            transformer
+        })
+    }
+
+    fun add(transformer: Transformer, config: MutableMap<String, Any>.(file: Path) -> Unit) {
+        add(transformer, BiConsumer { file, map ->
+            config(map, file)
+        })
     }
 }
 

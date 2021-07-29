@@ -44,32 +44,6 @@ class ArchitecturyPlugin : Plugin<Project> {
 
         project.extensions.create("architectury", ArchitectPluginExtension::class.java, project)
 
-        project.configurations.create("transformFabric")
-        project.configurations.create("transformForge")
-
-        project.tasks.register("transformProductionFabric", TransformingTask::class.java) {
-            it.group = "Architectury"
-            it.platform = "fabric"
-            it += RemapMixinVariables()
-            it += TransformExpectPlatform()
-            it += RemapInjectables()
-            it += AddRefmapName()
-            it += TransformPlatformOnly()
-        }
-
-        project.tasks.register("transformProductionForge", TransformingTask::class.java) {
-            it.group = "Architectury"
-            it.platform = "forge"
-            it += TransformExpectPlatform()
-            it += RemapInjectables()
-            it += AddRefmapName()
-            it += TransformPlatformOnly()
-
-            it += TransformForgeAnnotations()
-            it += TransformForgeEnvironment()
-            it += FixForgeMixin()
-        }
-
         project.repositories.apply {
             mavenCentral()
             maven { it.url = URI("https://maven.architectury.dev/") }
