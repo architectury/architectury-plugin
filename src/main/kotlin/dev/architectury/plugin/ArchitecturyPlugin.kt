@@ -1,7 +1,5 @@
 package dev.architectury.plugin
 
-import dev.architectury.plugin.transformers.AddRefmapName
-import dev.architectury.transformer.transformers.*
 import dev.architectury.transformer.util.LoggerFilter
 import org.gradle.api.Plugin
 import org.gradle.api.Project

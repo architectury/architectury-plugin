@@ -3,7 +3,7 @@ package dev.architectury.plugin.transformers
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import dev.architectury.transformer.Transform
-import dev.architectury.transformer.input.OutputInterface
+import dev.architectury.transformer.input.FileAccess
 import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.transformers.base.AssetEditTransformer
 import dev.architectury.transformer.transformers.base.edit.TransformerContext
@@ -12,12 +12,12 @@ import java.io.ByteArrayInputStream
 
 class AddRefmapName : AssetEditTransformer {
     val gson = GsonBuilder().setPrettyPrinting().create()
-    override fun doEdit(context: TransformerContext, output: OutputInterface) {
+    override fun doEdit(context: TransformerContext, output: FileAccess) {
         val mixins = mutableSetOf<String>()
         output.handle { path, bytes ->
             // Check JSON file in root directory
-            if (path.endsWith(".json") && !Transform.stripLoadingSlash(path)
-                    .contains("/") && !Transform.stripLoadingSlash(path).contains("\\")
+            if (path.endsWith(".json") && !Transform.trimLeadingSlash(path)
+                    .contains("/") && !Transform.trimLeadingSlash(path).contains("\\")
             ) {
                 Logger.debug("Checking whether $path is a mixin config.")
                 try {

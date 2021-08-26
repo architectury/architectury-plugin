@@ -5,7 +5,7 @@ package dev.architectury.plugin
 import dev.architectury.plugin.loom.LoomInterface
 import dev.architectury.plugin.transformers.AddRefmapName
 import dev.architectury.transformer.Transformer
-import dev.architectury.transformer.input.OpenedOutputInterface
+import dev.architectury.transformer.input.OpenedFileAccess
 import dev.architectury.transformer.shadowed.impl.com.google.common.hash.Hashing
 import dev.architectury.transformer.shadowed.impl.com.google.gson.Gson
 import dev.architectury.transformer.shadowed.impl.com.google.gson.JsonObject
@@ -28,7 +28,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "4.1.51"
+    var transformerVersion = "5.1.53"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     var injectInjectables = true
@@ -283,7 +283,7 @@ open class ArchitectPluginExtension(val project: Project) {
                     val output = it.archiveFile.get().asFile
 
                     try {
-                        OpenedOutputInterface.ofJar(output.toPath()).use { inter ->
+                        OpenedFileAccess.ofJar(output.toPath()).use { inter ->
                             inter.addFile("architectury.common.marker", "")
                         }
                     } catch (t: Throwable) {
