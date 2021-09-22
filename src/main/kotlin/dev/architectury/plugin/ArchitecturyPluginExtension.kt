@@ -58,14 +58,21 @@ open class ArchitectPluginExtension(val project: Project) {
 
     private val loom: LoomInterface by lazy {
         try {
-            Class.forName("net.fabricmc.loom.api.LoomGradleExtensionAPI")
-            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface09")
+            Class.forName("net.fabricmc.loom.api.MixinExtensionAPI")
+            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface010")
                 .getDeclaredConstructor(Project::class.java)
                 .newInstance(project) as LoomInterface
         } catch (ignored: ClassNotFoundException) {
-            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface06")
-                .getDeclaredConstructor(Project::class.java)
-                .newInstance(project) as LoomInterface
+            try {
+                Class.forName("net.fabricmc.loom.api.LoomGradleExtensionAPI")
+                return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface09")
+                    .getDeclaredConstructor(Project::class.java)
+                    .newInstance(project) as LoomInterface
+            } catch (ignored: ClassNotFoundException) {
+                return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface06")
+                    .getDeclaredConstructor(Project::class.java)
+                    .newInstance(project) as LoomInterface
+            }
         }
     }
 
