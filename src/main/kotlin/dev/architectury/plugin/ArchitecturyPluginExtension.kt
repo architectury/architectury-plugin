@@ -15,6 +15,7 @@ import dev.architectury.transformer.util.TransformerPair
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ModuleDependency
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.jvm.tasks.Jar
 import java.io.File
@@ -136,12 +137,12 @@ open class ArchitectPluginExtension(val project: Project) {
                             plsAddInjectables = true
                         }
                     val architecturyJavaAgents = project.configurations.create("architecturyJavaAgents") {
-                        project.configurations.getByName("runtimeOnly").extendsFrom(it)
+                        project.configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME).extendsFrom(it)
                     }
                     transformedLoom = true
 
                     with(project.dependencies) {
-                        add("runtimeOnly", "dev.architectury:architectury-transformer:$transformerVersion:runtime")
+                        add(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME, "dev.architectury:architectury-transformer:$transformerVersion:runtime")
                         add(
                             "architecturyJavaAgents",
                             "dev.architectury:architectury-transformer:$transformerVersion:agent"
@@ -236,12 +237,12 @@ open class ArchitectPluginExtension(val project: Project) {
             var plsAddInjectables = false
             project.configurations.findByName("architecturyTransformerClasspath")
                 ?: project.configurations.create("architecturyTransformerClasspath") {
-                    it.extendsFrom(project.configurations.getByName("compileClasspath"))
+                    it.extendsFrom(project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME))
                     plsAddInjectables = true
                 }
 
             with(project.dependencies) {
-                add("compileOnly", "dev.architectury:architectury-injectables:$injectablesVersion")
+                add(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME, "dev.architectury:architectury-injectables:$injectablesVersion")
 
                 if (plsAddInjectables) {
                     add(
