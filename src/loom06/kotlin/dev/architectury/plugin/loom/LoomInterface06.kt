@@ -25,7 +25,7 @@ class LoomInterface06(private val project: Project) : LoomInterface {
         }
 
     override val refmapName: String
-        get() = extension.refmapName
+        get() = extension.getRefmapName()
 
     override var generateSrgTiny: Boolean
         get() = extension.generateSrgTiny
