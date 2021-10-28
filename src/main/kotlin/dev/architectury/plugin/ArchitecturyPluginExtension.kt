@@ -58,23 +58,31 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     private val loom: LoomInterface by lazy {
-        try {
-            Class.forName("net.fabricmc.loom.api.MixinExtensionAPI")
-            return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface010")
-                .getDeclaredConstructor(Project::class.java)
-                .newInstance(project) as LoomInterface
+        useIfFound(
+            "net.fabricmc.loom.util.ZipUtils",
+            "dev.architectury.plugin.loom.LoomInterface010" // >0.10.0.188
+        ) ?: useIfFound(
+            "net.fabricmc.loom.api.MixinExtensionAPI",
+            "dev.architectury.plugin.loom.LoomInterface010Legacy" // 0.10.0
+        ) ?: useIfFound(
+            "net.fabricmc.loom.api.LoomGradleExtensionAPI",
+            "dev.architectury.plugin.loom.LoomInterface09" // 0.9.0
+        ) ?: use("dev.architectury.plugin.loom.LoomInterface06") // 0.6.0
+    }
+
+    fun useIfFound(className: String, interfaceName: String): LoomInterface? {
+        return try {
+            Class.forName(className)
+            use(interfaceName)
         } catch (ignored: ClassNotFoundException) {
-            try {
-                Class.forName("net.fabricmc.loom.api.LoomGradleExtensionAPI")
-                return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface09")
-                    .getDeclaredConstructor(Project::class.java)
-                    .newInstance(project) as LoomInterface
-            } catch (ignored: ClassNotFoundException) {
-                return@lazy Class.forName("dev.architectury.plugin.loom.LoomInterface06")
-                    .getDeclaredConstructor(Project::class.java)
-                    .newInstance(project) as LoomInterface
-            }
+            null
         }
+    }
+
+    fun use(interfaceName: String): LoomInterface {
+        return Class.forName(interfaceName)
+            .getDeclaredConstructor(Project::class.java)
+            .newInstance(project) as LoomInterface
     }
 
     init {
