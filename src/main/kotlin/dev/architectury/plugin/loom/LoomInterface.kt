@@ -18,6 +18,7 @@ interface LoomInterface {
 
     interface LoomRunConfig {
         var mainClass: String
-        var vmArgs: String
+        
+        fun addVmArg(vmArg: String)
     }
 }

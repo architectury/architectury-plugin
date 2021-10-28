@@ -52,6 +52,14 @@ sourceSets {
             runtimeClasspath += main.output
         }
     }
+    loom010Legacy {
+        java {
+            compileClasspath += main.compileClasspath
+            runtimeClasspath += main.runtimeClasspath
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+        }
+    }
     loom010 {
         java {
             compileClasspath += main.compileClasspath
@@ -70,6 +78,7 @@ dependencies {
     implementation "dev.architectury:architectury-transformer:$transformer_version"
     loom06CompileOnly "me.shedaniel:forgified-fabric-loom:$loom_version_06"
     loom09CompileOnly "dev.architectury:architectury-loom:$loom_version_09"
+    loom010LegacyCompileOnly "dev.architectury:architectury-loom:$loom_version_010Legacy"
     loom010CompileOnly "dev.architectury:architectury-loom:$loom_version_010"
     implementation "dev.architectury:tiny-remapper:1.1.0"
     implementation "com.google.code.gson:gson:2.8.5"
@@ -87,7 +96,7 @@ jar {
         attributes 'Implementation-Version': project.version
     }
 
-    from sourceSets.loom06.output + sourceSets.loom09.output + sourceSets.loom010.output
+    from sourceSets.loom06.output + sourceSets.loom09.output + sourceSets.loom010Legacy.output + sourceSets.loom010.output
 }
 
 gradlePlugin {

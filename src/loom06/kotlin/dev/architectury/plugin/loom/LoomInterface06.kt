@@ -55,10 +55,8 @@ class LoomInterface06(private val project: Project) : LoomInterface {
                 config.mainClass = value
             }
 
-        override var vmArgs: String
-            get() = config.vmArgs
-            set(value) {
-                config.vmArgs = value
-            }
+        override fun addVmArg(vmArg: String) {
+            config.vmArgs += " $vmArg"
+        }
     }
 }

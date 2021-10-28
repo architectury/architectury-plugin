@@ -11,7 +11,7 @@ import java.io.File
 import java.nio.file.Path
 import java.util.function.Consumer
 
-class LoomInterface010(private val project: Project) : LoomInterface {
+class LoomInterface010Legacy(private val project: Project) : LoomInterface {
     private val extension: LoomGradleExtension
         get() = LoomGradleExtension.get(project)
 
@@ -53,7 +53,7 @@ class LoomInterface010(private val project: Project) : LoomInterface {
             }
 
         override fun addVmArg(vmArg: String) {
-            config.vmArgs.add(vmArg)
+            config.vmArgs += " $vmArg"
         }
     }
 }

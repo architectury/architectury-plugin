@@ -137,12 +137,16 @@ open class ArchitectPluginExtension(val project: Project) {
                             plsAddInjectables = true
                         }
                     val architecturyJavaAgents = project.configurations.create("architecturyJavaAgents") {
-                        project.configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME).extendsFrom(it)
+                        project.configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME)
+                            .extendsFrom(it)
                     }
                     transformedLoom = true
 
                     with(project.dependencies) {
-                        add(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME, "dev.architectury:architectury-transformer:$transformerVersion:runtime")
+                        add(
+                            JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME,
+                            "dev.architectury:architectury-transformer:$transformerVersion:runtime"
+                        )
                         add(
                             "architecturyJavaAgents",
                             "dev.architectury:architectury-transformer:$transformerVersion:agent"
@@ -163,15 +167,15 @@ open class ArchitectPluginExtension(val project: Project) {
                         val s = config.mainClass
                         config.mainClass = "dev.architectury.transformer.TransformerRuntime"
                         mainClassTransformerFile.writeText(s)
-                        config.vmArgs += " -Darchitectury.main.class=${mainClassTransformerFile.absolutePath.escapeSpaces()}"
-                        config.vmArgs += " -Darchitectury.runtime.transformer=${runtimeTransformerFile.absolutePath.escapeSpaces()}"
-                        config.vmArgs += " -Darchitectury.properties=${propertiesTransformerFile.absolutePath.escapeSpaces()}"
-                        config.vmArgs += " -Djdk.attach.allowAttachSelf=true"
+                        config.addVmArg("-Darchitectury.main.class=${mainClassTransformerFile.absolutePath.escapeSpaces()}")
+                        config.addVmArg("-Darchitectury.runtime.transformer=${runtimeTransformerFile.absolutePath.escapeSpaces()}")
+                        config.addVmArg("-Darchitectury.properties=${propertiesTransformerFile.absolutePath.escapeSpaces()}")
+                        config.addVmArg("-Djdk.attach.allowAttachSelf=true")
                         if (architecturyJavaAgents.toList().size == 1) {
                             if (!agentFile.exists() || agentFile.delete()) {
                                 architecturyJavaAgents.first().copyTo(agentFile, overwrite = true)
                             }
-                            config.vmArgs += " -javaagent:${agentFile.absolutePath.escapeSpaces()}"
+                            config.addVmArg("-javaagent:${agentFile.absolutePath.escapeSpaces()}")
                         } else {
                             throw IllegalStateException(
                                 "Illegal Count of Architectury Java Agents! " + architecturyJavaAgents.toList()
@@ -242,7 +246,10 @@ open class ArchitectPluginExtension(val project: Project) {
                 }
 
             with(project.dependencies) {
-                add(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME, "dev.architectury:architectury-injectables:$injectablesVersion")
+                add(
+                    JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME,
+                    "dev.architectury:architectury-injectables:$injectablesVersion"
+                )
 
                 if (plsAddInjectables) {
                     add(
