@@ -59,6 +59,9 @@ open class ArchitectPluginExtension(val project: Project) {
 
     private val loom: LoomInterface by lazy {
         useIfFound(
+            "net.fabricmc.loom.util.service.SharedServiceManager",
+            "dev.architectury.plugin.loom.LoomInterface011" // 0.11.0
+        ) ?: useIfFound(
             "net.fabricmc.loom.util.ZipUtils",
             "dev.architectury.plugin.loom.LoomInterface010" // >0.10.0.188
         ) ?: useIfFound(
