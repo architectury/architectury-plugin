@@ -14,6 +14,7 @@ import dev.architectury.transformer.transformers.properties.TransformersWriter
 import dev.architectury.transformer.util.TransformerPair
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
@@ -304,19 +305,22 @@ open class ArchitectPluginExtension(val project: Project) {
             it.archiveClassifier.set("")
             loom.setRemapJarInput(it, jarTask.archiveFile)
             it.dependsOn(jarTask)
-            it.doLast { _ ->
-                if (addCommonMarker) {
-                    val output = it.archiveFile.get().asFile
+            @Suppress("ObjectLiteralToLambda")
+            it.doLast(object : Action<Task> {
+                override fun execute(task: Task) {
+                    if (addCommonMarker) {
+                        val output = it.archiveFile.get().asFile
 
-                    try {
-                        OpenedFileAccess.ofJar(output.toPath()).use { inter ->
-                            inter.addFile("architectury.common.marker", "")
+                        try {
+                            OpenedFileAccess.ofJar(output.toPath()).use { inter ->
+                                inter.addFile("architectury.common.marker", "")
+                            }
+                        } catch (t: Throwable) {
+                            project.logger.warn("Failed to add architectury.common.marker to ${output.absolutePath}")
                         }
-                    } catch (t: Throwable) {
-                        project.logger.warn("Failed to add architectury.common.marker to ${output.absolutePath}")
                     }
                 }
-            }
+            })
         } as Jar
 
         if (settings.forgeEnabled) {
