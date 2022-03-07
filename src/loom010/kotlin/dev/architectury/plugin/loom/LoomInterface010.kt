@@ -30,6 +30,8 @@ class LoomInterface010(private val project: Project) : LoomInterface {
             extension.setGenerateSrgTiny(value)
         }
 
+    override val generateTransformerPropertiesInTask = false
+
     override fun settingsPostEdit(action: (config: LoomInterface.LoomRunConfig) -> Unit) {
         extension.settingsPostEdit.add(Consumer { c -> action(LoomRunConfigImpl(c)) })
     }
