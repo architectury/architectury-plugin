@@ -91,29 +91,21 @@ open class ArchitectPluginExtension(val project: Project) {
 
     init {
         project.afterEvaluate {
-            if (transforms.isNotEmpty()) {
-                StringWriter().also { strWriter ->
-                    TransformersWriter(strWriter).use { writer ->
-                        for (transform in transforms.values) {
-                            project.configurations.getByName(transform.configName).forEach { file ->
-                                transform.transformers.map { it.apply(file.toPath()) }
-                                    .forEach { pair ->
-                                        writer.write(file.toPath(), pair.clazz, pair.properties)
-                                    }
-                            }
-                        }
+            if (loom.generateTransformerPropertiesInTask) {
+                // Only apply if this project has the configureLaunch task.
+                // This is needed because arch plugin can also apply to the root project
+                // where the task doesn't exist and our task isn't needed either.
+                if ("configureLaunch" in project.tasks.names) {
+                    val task = project.tasks.register(
+                        "prepareArchitecturyTransformer",
+                        PrepareArchitecturyTransformer::class.java
+                    )
+                    project.tasks.named("configureLaunch") {
+                        it.dependsOn(task)
                     }
-
-                    runtimeTransformerFile.writeText(strWriter.toString())
                 }
-
-                val properties = Properties()
-                properties(transforms.keys.first()).forEach { (key, value) ->
-                    properties.setProperty(key, value)
-                }
-                propertiesTransformerFile.writer().use {
-                    properties.store(it, "Architectury Runtime Transformer Properties")
-                }
+            } else {
+                prepareTransformer()
             }
         }
     }
@@ -129,6 +121,34 @@ open class ArchitectPluginExtension(val project: Project) {
             BuiltinProperties.REFMAP_NAME to loom.refmapName,
             BuiltinProperties.MCMETA_VERSION to "4"
         )
+    }
+
+    fun prepareTransformer() {
+        if (transforms.isNotEmpty()) {
+            StringWriter().also { strWriter ->
+                TransformersWriter(strWriter).use { writer ->
+                    for (transform in transforms.values) {
+                        project.configurations.getByName(transform.configName).forEach { file ->
+                            transform.transformers.map { it.apply(file.toPath()) }
+                                .forEach { pair ->
+                                    writer.write(file.toPath(), pair.clazz, pair.properties)
+                                }
+                        }
+                    }
+                }
+
+                runtimeTransformerFile.writeText(strWriter.toString())
+            }
+
+
+            val properties = Properties()
+            properties(transforms.keys.first()).forEach { (key, value) ->
+                properties.setProperty(key, value)
+            }
+            propertiesTransformerFile.writer().use {
+                properties.store(it, "Architectury Runtime Transformer Properties")
+            }
+        }
     }
 
     private fun getCompileClasspath(): Iterable<File> {

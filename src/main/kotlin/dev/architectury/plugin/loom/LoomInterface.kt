@@ -12,6 +12,16 @@ interface LoomInterface {
     val refmapName: String
     var generateSrgTiny: Boolean
 
+    /**
+     * Loom 0.11+ has to generate the runtime transformer properties file
+     * in a separate hook that is guaranteed to run after mod dep processing.
+     * (Which is a task hooked to `configureLaunch`.)
+     * This is just unfortunate `afterEvaluate` ordering, sadly.
+     *
+     * See [architectury-loom#72](https://github.com/architectury/architectury-loom/issues/72)
+     */
+    val generateTransformerPropertiesInTask: Boolean
+
     fun settingsPostEdit(action: (config: LoomRunConfig) -> Unit)
     fun setIdeConfigGenerated()
     fun setRemapJarInput(task: Jar, archiveFile: Provider<RegularFile>)
