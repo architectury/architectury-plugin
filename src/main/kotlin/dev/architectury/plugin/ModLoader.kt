@@ -3,7 +3,6 @@ package dev.architectury.plugin
 import dev.architectury.plugin.loom.LoomInterface
 import dev.architectury.plugin.transformers.AddRefmapName
 import dev.architectury.transformer.transformers.*
-import java.nio.charset.StandardCharsets
 
 class ModLoader(
     val id: String,
@@ -27,28 +26,20 @@ class ModLoader(
                 this += RuntimeMixinRefmapDetector::class.java
                 this += GenerateFakeFabricMod::class.java
                 add(TransformExpectPlatform::class.java) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] =
-                        (project.projectUniqueIdentifier() + "_" + file.toString()
-                            .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName()
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 add(RemapInjectables::class.java) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] =
-                        (project.projectUniqueIdentifier() + "_" + file.toString()
-                            .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName()
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 this += TransformPlatformOnly::class.java
             },
-            transformProduction = { _ ->
+            transformProduction = {
                 this += RemapMixinVariables()
                 add(TransformExpectPlatform()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] =
-                        (project.projectUniqueIdentifier() + "_" + file.toString()
-                            .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 add(RemapInjectables()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] =
-                        (project.projectUniqueIdentifier() + "_" + file.toString()
-                            .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 this += AddRefmapName()
                 this += TransformPlatformOnly()
@@ -60,14 +51,10 @@ class ModLoader(
             transformDevelopment = {
                 this += RuntimeMixinRefmapDetector::class.java
                 add(TransformExpectPlatform::class.java) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] =
-                        (project.projectUniqueIdentifier() + "_" + file.toString()
-                            .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName()
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 add(RemapInjectables::class.java) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] =
-                        (project.projectUniqueIdentifier() + "_" + file.toString()
-                            .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName()
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 this += TransformPlatformOnly::class.java
 
@@ -78,14 +65,10 @@ class ModLoader(
             },
             transformProduction = { loom ->
                 add(TransformExpectPlatform()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] =
-                        (project.projectUniqueIdentifier() + "_" + file.toString()
-                            .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 add(RemapInjectables()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] =
-                        (project.projectUniqueIdentifier() + "_" + file.toString()
-                            .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName();
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 this += AddRefmapName()
                 this += TransformPlatformOnly()
@@ -95,6 +78,33 @@ class ModLoader(
                 this += FixForgeMixin()
 
                 loom.generateSrgTiny = true
+            }
+        )
+
+        val QUILT = ModLoader(
+            id = "quilt",
+            transformDevelopment = {
+                this += RuntimeMixinRefmapDetector::class.java
+                this += GenerateFakeQuiltMod::class.java
+                add(TransformExpectPlatform::class.java) { file ->
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                }
+                add(RemapInjectables::class.java) { file ->
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                }
+                this += TransformPlatformOnly::class.java
+                envAnnotationProvider = "org.quiltmc:quilt-loader:+"
+            },
+            transformProduction = {
+                this += RemapMixinVariables()
+                add(TransformExpectPlatform()) { file ->
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                }
+                add(RemapInjectables()) { file ->
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                }
+                this += AddRefmapName()
+                this += TransformPlatformOnly()
             }
         )
     }

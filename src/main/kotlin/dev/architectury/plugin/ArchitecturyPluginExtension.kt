@@ -20,6 +20,7 @@ import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.io.StringWriter
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.*
 import java.util.function.BiConsumer
@@ -28,7 +29,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "5.2.61"
+    var transformerVersion = "5.2.64"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     var injectInjectables = true
@@ -57,34 +58,7 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     private val loom: LoomInterface by lazy {
-        useIfFound(
-            "net.fabricmc.loom.util.service.SharedServiceManager",
-            "dev.architectury.plugin.loom.LoomInterface011" // 0.11.0
-        ) ?: useIfFound(
-            "net.fabricmc.loom.util.ZipUtils",
-            "dev.architectury.plugin.loom.LoomInterface010" // >0.10.0.188
-        ) ?: useIfFound(
-            "net.fabricmc.loom.api.MixinExtensionAPI",
-            "dev.architectury.plugin.loom.LoomInterface010Legacy" // 0.10.0
-        ) ?: useIfFound(
-            "net.fabricmc.loom.api.LoomGradleExtensionAPI",
-            "dev.architectury.plugin.loom.LoomInterface09" // 0.9.0
-        ) ?: use("dev.architectury.plugin.loom.LoomInterface06") // 0.6.0
-    }
-
-    fun useIfFound(className: String, interfaceName: String): LoomInterface? {
-        return try {
-            Class.forName(className)
-            use(interfaceName)
-        } catch (ignored: ClassNotFoundException) {
-            null
-        }
-    }
-
-    fun use(interfaceName: String): LoomInterface {
-        return Class.forName(interfaceName)
-            .getDeclaredConstructor(Project::class.java)
-            .newInstance(project) as LoomInterface
+        LoomInterface.get(project)
     }
 
     init {
@@ -115,7 +89,7 @@ open class ArchitectPluginExtension(val project: Project) {
             BuiltinProperties.UNIQUE_IDENTIFIER to project.projectUniqueIdentifier(),
             BuiltinProperties.COMPILE_CLASSPATH to getCompileClasspath().joinToString(File.pathSeparator),
             BuiltinProperties.MAPPINGS_WITH_SRG to loom.tinyMappingsWithSrg.toString(),
-            "architectury.platform.name" to platform,
+            BuiltinProperties.PLATFORM_NAME to platform,
             BuiltinProperties.REFMAP_NAME to loom.refmapName,
             BuiltinProperties.MCMETA_VERSION to "4"
         )
@@ -158,6 +132,7 @@ open class ArchitectPluginExtension(val project: Project) {
         transforms.getOrPut(name) {
             Transform(project, "development" + name.capitalize()).also { transform ->
                 project.configurations.maybeCreate(transform.configName)
+                action.execute(transform)
 
                 if (!transformedLoom) {
                     var plsAddInjectables = false
@@ -186,7 +161,7 @@ open class ArchitectPluginExtension(val project: Project) {
                                 "architecturyTransformerClasspath",
                                 "dev.architectury:architectury-injectables:$injectablesVersion"
                             )
-                            add("architecturyTransformerClasspath", "net.fabricmc:fabric-loader:+")?.also {
+                            add("architecturyTransformerClasspath", transform.envAnnotationProvider)?.also {
                                 it as ModuleDependency
                                 it.isTransitive = false
                             }
@@ -215,8 +190,6 @@ open class ArchitectPluginExtension(val project: Project) {
                     }
                 }
             }
-        }.also {
-            action.execute(it)
         }
     }
 
@@ -251,6 +224,7 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun common() {
+        project.logger.warn("architectury's common() is deprecated, use common(String... platforms) instead")
         common {}
     }
 
@@ -280,11 +254,19 @@ open class ArchitectPluginExtension(val project: Project) {
             loaders.removeAll { it.id == id }
         }
 
-        fun add(id: Array<String>) {
+        fun add(vararg id: String) {
             loaders.addAll(id.map { ModLoader.valueOf(it) })
         }
 
-        fun remove(id: Array<String>) {
+        fun remove(vararg id: String) {
+            loaders.removeAll { id.contains(it.id) }
+        }
+
+        fun add(id: Iterable<String>) {
+            loaders.addAll(id.map { ModLoader.valueOf(it) })
+        }
+
+        fun remove(id: Iterable<String>) {
             loaders.removeAll { id.contains(it.id) }
         }
 
@@ -298,6 +280,7 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun common(forgeEnabled: Boolean) {
+        project.logger.warn("architectury's common(Boolean forgeEnabled) is deprecated, use common(String... platforms) instead")
         common {
             if (!forgeEnabled) {
                 remove("forge")
@@ -309,10 +292,21 @@ open class ArchitectPluginExtension(val project: Project) {
         common(Action { it.action() })
     }
 
-    fun common(platforms: Array<String>) {
+    @JvmOverloads
+    fun common(vararg platforms: String, action: CommonSettings.() -> Unit = {}) {
+        common {
+            clear()
+            add(*platforms)
+            action(this)
+        }
+    }
+
+    @JvmOverloads
+    fun common(platforms: Iterable<String>, action: CommonSettings.() -> Unit = {}) {
         common {
             clear()
             add(platforms)
+            action(this)
         }
     }
 
@@ -409,7 +403,8 @@ private fun File.createEmptyJar() {
 data class Transform(
     val project: Project,
     val configName: String,
-    val transformers: MutableList<Function<Path, TransformerPair>> = mutableListOf()
+    val transformers: MutableList<Function<Path, TransformerPair>> = mutableListOf(),
+    var envAnnotationProvider: String = "net.fabricmc:fabric-loader:+"
 ) {
     operator fun plusAssign(transformer: TransformerPair) {
         transformers.add(Function { transformer })
@@ -440,6 +435,10 @@ data class Transform(
         })
     }
 }
+
+fun projectGeneratedPackage(project: Project, file: Path): String =
+    (project.projectUniqueIdentifier() + "_" + file.toString()
+        .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName()
 
 fun String.legalizePackageName(): String =
     filter { Character.isJavaIdentifierPart(it) }
