@@ -6,7 +6,6 @@ import dev.architectury.transformer.Transformer
 import dev.architectury.transformer.shadowed.impl.com.google.gson.Gson
 import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.util.Logger
-import dev.architectury.transformer.util.TransformerPair
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty

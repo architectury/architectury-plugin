@@ -1,5 +1,6 @@
 package dev.architectury.plugin.loom
 
+import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.jvm.tasks.Jar
@@ -7,6 +8,39 @@ import java.io.File
 import java.nio.file.Path
 
 interface LoomInterface {
+    companion object {
+        fun get(project: Project): LoomInterface {
+            fun use(interfaceName: String): LoomInterface {
+                return Class.forName(interfaceName)
+                    .getDeclaredConstructor(Project::class.java)
+                    .newInstance(project) as LoomInterface
+            }
+
+            fun useIfFound(className: String, interfaceName: String): LoomInterface? {
+                return try {
+                    Class.forName(className)
+                    use(interfaceName)
+                } catch (ignored: ClassNotFoundException) {
+                    null
+                }
+            }
+
+            return useIfFound(
+                "net.fabricmc.loom.util.service.SharedServiceManager",
+                "dev.architectury.plugin.loom.LoomInterface011" // 0.11.0
+            ) ?: useIfFound(
+                "net.fabricmc.loom.util.ZipUtils",
+                "dev.architectury.plugin.loom.LoomInterface010" // >0.10.0.188
+            ) ?: useIfFound(
+                "net.fabricmc.loom.api.MixinExtensionAPI",
+                "dev.architectury.plugin.loom.LoomInterface010Legacy" // 0.10.0
+            ) ?: useIfFound(
+                "net.fabricmc.loom.api.LoomGradleExtensionAPI",
+                "dev.architectury.plugin.loom.LoomInterface09" // 0.9.0
+            ) ?: use("dev.architectury.plugin.loom.LoomInterface06") // 0.6.0
+        }
+    }
+
     val allMixinMappings: Collection<File>
     val tinyMappingsWithSrg: Path
     val refmapName: String
@@ -28,7 +62,7 @@ interface LoomInterface {
 
     interface LoomRunConfig {
         var mainClass: String
-        
+
         fun addVmArg(vmArg: String)
     }
 }
