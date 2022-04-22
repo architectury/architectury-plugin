@@ -2,6 +2,7 @@ package dev.architectury.plugin.loom
 
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.configuration.ide.RunConfig
+import net.fabricmc.loom.configuration.providers.mappings.MappingsProviderImpl
 import net.fabricmc.loom.task.RemapJarTask
 import net.fabricmc.loom.task.service.MixinMappingsService
 import net.fabricmc.loom.util.service.SharedServiceManager
@@ -21,9 +22,15 @@ class LoomInterface011(private val project: Project) : LoomInterface {
         get() = extractMixinMappings(getMixinService(SharedServiceManager.get(project)))
 
     private fun getMixinService(serviceManager: SharedServiceManager): MixinMappingsService {
-        return MixinMappingsService::class.java.getDeclaredMethod("getService", SharedServiceManager::class.java).also {
-            it.isAccessible = true
-        }.invoke(null, serviceManager) as MixinMappingsService
+        return try {
+            MixinMappingsService::class.java.getDeclaredMethod("getService", SharedServiceManager::class.java).also {
+                it.isAccessible = true
+            }.invoke(null, serviceManager) as MixinMappingsService
+        } catch (ignored: NoSuchMethodException) {
+            MixinMappingsService::class.java.getDeclaredMethod("getService", SharedServiceManager::class.java, MappingsProviderImpl::class.java).also {
+                it.isAccessible = true
+            }.invoke(null, serviceManager, extension.mappingsProvider) as MixinMappingsService
+        }
     }
 
     private fun extractMixinMappings(service: MixinMappingsService): Collection<File> {
