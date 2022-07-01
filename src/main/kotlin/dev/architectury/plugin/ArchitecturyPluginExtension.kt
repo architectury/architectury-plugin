@@ -33,7 +33,7 @@ open class ArchitectPluginExtension(val project: Project) {
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     private var compileOnly = false
-    var injectInjectables = false
+    var injectInjectables = true
     var addCommonMarker = true
     private val transforms = mutableMapOf<String, Transform>()
     private var transformedLoom = false
