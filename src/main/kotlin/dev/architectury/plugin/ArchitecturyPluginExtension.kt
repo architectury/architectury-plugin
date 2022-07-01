@@ -32,7 +32,8 @@ open class ArchitectPluginExtension(val project: Project) {
     var transformerVersion = "5.2.66"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
-    var injectInjectables = true
+    private var compileOnly = false
+    var injectInjectables = false
     var addCommonMarker = true
     private val transforms = mutableMapOf<String, Transform>()
     private var transformedLoom = false
@@ -63,6 +64,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
     init {
         project.afterEvaluate {
+            if (compileOnly) return@afterEvaluate
             if (loom.generateTransformerPropertiesInTask) {
                 // Only apply if this project has the configureLaunch task.
                 // This is needed because arch plugin can also apply to the root project
@@ -81,6 +83,15 @@ open class ArchitectPluginExtension(val project: Project) {
             }
         }
     }
+    
+    fun compileOnly() {
+        if (compileOnly) {
+            throw IllegalStateException("compileOnly() can only be called once for project ${project.path}!")
+        }
+        compileOnly = true
+        injectInjectables = false
+        project.logger.debug("Compile only mode enabled for ${project.path}. Injectables will not be injected.")
+    }
 
     fun properties(platform: String): Map<String, String> {
         return mutableMapOf(
@@ -96,11 +107,11 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun prepareTransformer() {
-        if (transforms.isNotEmpty()) {
+        if (transforms.isNotEmpty() && !compileOnly) {
             StringWriter().also { strWriter ->
                 TransformersWriter(strWriter).use { writer ->
                     for (transform in transforms.values) {
-                        project.configurations.getByName(transform.configName).forEach { file ->
+                        project.configurations.getByName(transform.devConfigName).forEach { file ->
                             transform.transformers.map { it.apply(file.toPath()) }
                                 .forEach { pair ->
                                     writer.write(file.toPath(), pair.clazz, pair.properties)
@@ -131,10 +142,12 @@ open class ArchitectPluginExtension(val project: Project) {
     fun transform(name: String, action: Action<Transform>) {
         transforms.getOrPut(name) {
             Transform(project, "development" + name.capitalize()).also { transform ->
-                project.configurations.maybeCreate(transform.configName)
+                if (!compileOnly) {
+                    project.configurations.maybeCreate(transform.devConfigName)
+                }
                 action.execute(transform)
 
-                if (!transformedLoom) {
+                if (!transformedLoom && !compileOnly) {
                     var plsAddInjectables = false
                     project.configurations.findByName("architecturyTransformerClasspath")
                         ?: project.configurations.create("architecturyTransformerClasspath") {
@@ -218,7 +231,9 @@ open class ArchitectPluginExtension(val project: Project) {
     @JvmOverloads
     fun loader(loader: ModLoader, action: Action<Transform> = Action {}) {
         transform(loader.id, Action {
-            loader.transformDevelopment(it)
+            if (!compileOnly) {
+                loader.transformDevelopment(it)
+            }
             action.execute(it)
         })
     }
@@ -317,7 +332,7 @@ open class ArchitectPluginExtension(val project: Project) {
             action.execute(it)
         }
 
-        if (injectInjectables) {
+        if (injectInjectables && !compileOnly) {
             var plsAddInjectables = false
             project.configurations.findByName("architecturyTransformerClasspath")
                 ?: project.configurations.create("architecturyTransformerClasspath") {
@@ -402,7 +417,7 @@ private fun File.createEmptyJar() {
 
 data class Transform(
     val project: Project,
-    val configName: String,
+    val devConfigName: String,
     val transformers: MutableList<Function<Path, TransformerPair>> = mutableListOf(),
     var envAnnotationProvider: String = "net.fabricmc:fabric-loader:+"
 ) {
