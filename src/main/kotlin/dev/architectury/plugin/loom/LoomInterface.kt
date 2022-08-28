@@ -64,5 +64,10 @@ interface LoomInterface {
         var mainClass: String
 
         fun addVmArg(vmArg: String)
+        
+        fun escape(arg: String): String {
+            if (arg.any(Char::isWhitespace)) return "\"$arg\""
+            return arg
+        }
     }
 }

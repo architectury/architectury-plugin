@@ -182,6 +182,7 @@ open class ArchitectPluginExtension(val project: Project) {
                     }
 
                     loom.settingsPostEdit { config ->
+                        fun String.escapeSpaces(): String = config.escape(this)
                         val s = config.mainClass
                         config.mainClass = "dev.architectury.transformer.TransformerRuntime"
                         mainClassTransformerFile.writeText(s)
@@ -204,13 +205,6 @@ open class ArchitectPluginExtension(val project: Project) {
                 }
             }
         }
-    }
-
-    private fun String.escapeSpaces(): String {
-        if (any(Char::isWhitespace)) {
-            return "\"$this\""
-        }
-        return this
     }
 
     @JvmOverloads

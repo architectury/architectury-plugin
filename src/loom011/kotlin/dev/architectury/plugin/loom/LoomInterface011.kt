@@ -78,5 +78,7 @@ class LoomInterface011(private val project: Project) : LoomInterface {
         override fun addVmArg(vmArg: String) {
             config.vmArgs.add(vmArg)
         }
+
+        override fun escape(arg: String): String = arg
     }
 }
