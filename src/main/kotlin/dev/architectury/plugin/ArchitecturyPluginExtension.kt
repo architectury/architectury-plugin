@@ -10,6 +10,7 @@ import dev.architectury.transformer.shadowed.impl.com.google.gson.Gson
 import dev.architectury.transformer.shadowed.impl.com.google.gson.JsonObject
 import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.transformers.properties.TransformersWriter
+import dev.architectury.transformer.util.Logger
 import dev.architectury.transformer.util.TransformerPair
 import org.gradle.api.Action
 import org.gradle.api.Project
@@ -94,7 +95,7 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun properties(platform: String): Map<String, String> {
-        return mutableMapOf(
+        return mapOf(
             BuiltinProperties.MIXIN_MAPPINGS to loom.allMixinMappings.joinToString(File.pathSeparator),
             BuiltinProperties.INJECT_INJECTABLES to injectInjectables.toString(),
             BuiltinProperties.UNIQUE_IDENTIFIER to project.projectUniqueIdentifier(),
@@ -391,7 +392,7 @@ open class ArchitectPluginExtension(val project: Project) {
                         val output = it.archiveFile.get().asFile
 
                         try {
-                            OpenedFileAccess.ofJar(output.toPath()).use { inter ->
+                            OpenedFileAccess.ofJar(Logger.getDefaultLogger(), output.toPath()).use { inter ->
                                 inter.addFile("architectury.common.marker", "")
                             }
                         } catch (t: Throwable) {

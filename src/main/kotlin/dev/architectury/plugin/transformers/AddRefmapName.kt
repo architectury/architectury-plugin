@@ -7,7 +7,6 @@ import dev.architectury.transformer.input.FileAccess
 import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.transformers.base.AssetEditTransformer
 import dev.architectury.transformer.transformers.base.edit.TransformerContext
-import dev.architectury.transformer.util.Logger
 import java.io.ByteArrayInputStream
 
 class AddRefmapName : AssetEditTransformer {
@@ -19,7 +18,7 @@ class AddRefmapName : AssetEditTransformer {
             if (path.endsWith(".json") && !Transform.trimLeadingSlash(path)
                     .contains("/") && !Transform.trimLeadingSlash(path).contains("\\")
             ) {
-                Logger.debug("Checking whether $path is a mixin config.")
+                context.logger.debug("Checking whether $path is a mixin config.")
                 try {
                     val json = gson.fromJson(ByteArrayInputStream(bytes).reader(), JsonObject::class.java)
                     if (json != null) {
@@ -37,7 +36,7 @@ class AddRefmapName : AssetEditTransformer {
             }
         }
         if (mixins.isNotEmpty()) {
-            Logger.debug("Found mixin config(s): " + java.lang.String.join(",", mixins))
+            context.logger.debug("Found mixin config(s): " + java.lang.String.join(",", mixins))
         }
         val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME)
         mixins.forEach { path ->
@@ -48,7 +47,7 @@ class AddRefmapName : AssetEditTransformer {
                 )
 
                 if (!json.has("refmap")) {
-                    Logger.debug("Injecting $refmap to $path")
+                    context.logger.debug("Injecting $refmap to $path")
                     json.addProperty("refmap", refmap)
                 }
 

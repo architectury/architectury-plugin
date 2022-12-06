@@ -37,16 +37,19 @@ open class TransformingTask : Jar() {
         val output: Path = this.archiveFile.get().asFile.toPath()
 
         val extension = project.extensions.getByType(ArchitectPluginExtension::class.java)
-        extension.properties(platform ?: throw NullPointerException("No Platform specified")).forEach { (key, value) ->
-            System.setProperty(key, value)
-        }
-        System.setProperty(BuiltinProperties.LOCATION, project.file(".gradle").absolutePath)
-        Logger.debug("")
-        Logger.debug("============================")
-        Logger.debug("Transforming from $input to $output")
-        Logger.debug("============================")
-        Logger.debug("")
-        Transform.runTransformers(input, output, transformers.get())
+        val properties = mutableMapOf<String, String>()
+        extension.properties(platform ?: throw NullPointerException("No Platform specified")).toMap(properties)
+        properties[BuiltinProperties.LOCATION] = project.file(".gradle").absolutePath
+        val logger = Logger(
+            properties.getOrDefault(BuiltinProperties.LOCATION, System.getProperty("user.dir")),
+            properties.getOrDefault(BuiltinProperties.VERBOSE, "false") == "true"
+        )
+        logger.debug("")
+        logger.debug("============================")
+        logger.debug("Transforming from $input to $output")
+        logger.debug("============================")
+        logger.debug("")
+        Transform.runTransformers(input, output, transformers.get(), properties)
     }
 
     operator fun invoke(transformer: Transformer) {
