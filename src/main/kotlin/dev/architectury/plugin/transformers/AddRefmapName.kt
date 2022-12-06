@@ -38,10 +38,10 @@ class AddRefmapName : AssetEditTransformer {
         if (mixins.isNotEmpty()) {
             context.logger.debug("Found mixin config(s): " + java.lang.String.join(",", mixins))
         }
-        val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME)
+        val refmap = context.getProperty(BuiltinProperties.REFMAP_NAME)
         mixins.forEach { path ->
             output.modifyFile(path) {
-                val json: JsonObject = gson.fromJson<JsonObject>(
+                val json = gson.fromJson(
                     ByteArrayInputStream(it).reader(),
                     JsonObject::class.java
                 )
