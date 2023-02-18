@@ -76,6 +76,14 @@ sourceSets {
             runtimeClasspath += main.output
         }
     }
+    loom11 {
+        java {
+            compileClasspath += main.compileClasspath
+            runtimeClasspath += main.runtimeClasspath
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+        }
+    }
 }
 
 dependencies {
@@ -91,6 +99,7 @@ dependencies {
     loom011CompileOnly "dev.architectury:architectury-loom:$loom_version_011"
     loom011CompileOnly "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.10"
     loom011CompileOnly "org.jetbrains.kotlin:kotlin-reflect:1.5.10"
+    loom11CompileOnly "dev.architectury:architectury-loom:$loom_version_11"
     implementation "dev.architectury:tiny-remapper:1.1.0"
     implementation "com.google.code.gson:gson:2.8.5"
 }
