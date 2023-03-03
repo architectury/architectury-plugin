@@ -3,6 +3,7 @@
 package dev.architectury.plugin
 
 import dev.architectury.plugin.loom.LoomInterface
+import dev.architectury.plugin.utils.GradleSupport
 import dev.architectury.transformer.Transformer
 import dev.architectury.transformer.input.OpenedFileAccess
 import dev.architectury.transformer.shadowed.impl.com.google.common.hash.Hashing
@@ -57,7 +58,10 @@ open class ArchitectPluginExtension(val project: Project) {
             it.parentFile.mkdirs()
         }
     }
-
+    private val gradle8: Boolean by lazy {
+        // We use compileOnly on Gradle 8+, I am not sure of the consequences of using compileOnly on Gradle 7
+        GradleSupport.isGradle8(project)
+    }
     private val loom: LoomInterface by lazy {
         LoomInterface.get(project)
     }
@@ -136,7 +140,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
     private fun getCompileClasspath(): Iterable<File> {
         return project.configurations.findByName("architecturyTransformerClasspath")
-            ?: project.configurations.getByName("compileClasspath")
+            ?: project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)
     }
 
     fun transform(name: String, action: Action<Transform>) {
@@ -151,7 +155,7 @@ open class ArchitectPluginExtension(val project: Project) {
                     var plsAddInjectables = false
                     project.configurations.findByName("architecturyTransformerClasspath")
                         ?: project.configurations.create("architecturyTransformerClasspath") {
-                            it.extendsFrom(project.configurations.getByName("compileClasspath"))
+                            it.extendsFrom(project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME))
                             plsAddInjectables = true
                         }
                     val architecturyJavaAgents = project.configurations.create("architecturyJavaAgents") {
@@ -161,10 +165,22 @@ open class ArchitectPluginExtension(val project: Project) {
                     transformedLoom = true
 
                     with(project.dependencies) {
-                        add(
-                            JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME,
-                            "dev.architectury:architectury-transformer:$transformerVersion:runtime"
-                        )
+                        // We are trying to not leak to consumers that we are using architectury-transformer
+                        if (gradle8) {
+                            val customRuntimeClasspath = project.configurations.findByName("architecturyTransformerRuntimeClasspath")
+                                ?: project.configurations.create("architecturyTransformerRuntimeClasspath") {
+                                    project.configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME).extendsFrom(it)
+                                }
+                            add(
+                                customRuntimeClasspath.name,
+                                "dev.architectury:architectury-transformer:$transformerVersion:runtime"
+                            )
+                        } else {
+                            add(
+                                JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME,
+                                "dev.architectury:architectury-transformer:$transformerVersion:runtime"
+                            )
+                        }
                         add(
                             "architecturyJavaAgents",
                             "dev.architectury:architectury-transformer:$transformerVersion:agent"
@@ -336,7 +352,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
             with(project.dependencies) {
                 add(
-                    JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME,
+                    if (gradle8) JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME else JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME,
                     "dev.architectury:architectury-injectables:$injectablesVersion"
                 )
 

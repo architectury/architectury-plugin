@@ -116,7 +116,7 @@ jar {
         attributes 'Implementation-Version': project.version
     }
 
-    from sourceSets.loom06.output + sourceSets.loom09.output + sourceSets.loom010Legacy.output + sourceSets.loom010.output + sourceSets.loom011.output
+    from sourceSets.loom06.output + sourceSets.loom09.output + sourceSets.loom010Legacy.output + sourceSets.loom010.output + sourceSets.loom011.output + sourceSets.loom11.output
 }
 
 gradlePlugin {
