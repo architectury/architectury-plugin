@@ -132,7 +132,7 @@ open class ArchitectPluginExtension(val project: Project) {
             properties(transforms.keys.first()).forEach { (key, value) ->
                 properties.setProperty(key, value)
             }
-            propertiesTransformerFile.writer().use {
+            propertiesTransformerFile.writer(Charsets.UTF_8).use {
                 properties.store(it, "Architectury Runtime Transformer Properties")
             }
         }
