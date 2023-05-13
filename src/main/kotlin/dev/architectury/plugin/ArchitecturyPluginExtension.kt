@@ -30,7 +30,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "5.2.72"
+    var transformerVersion = "5.2.75"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     private var compileOnly = false
@@ -132,7 +132,7 @@ open class ArchitectPluginExtension(val project: Project) {
             properties(transforms.keys.first()).forEach { (key, value) ->
                 properties.setProperty(key, value)
             }
-            propertiesTransformerFile.writer().use {
+            propertiesTransformerFile.writer(Charsets.UTF_8).use {
                 properties.store(it, "Architectury Runtime Transformer Properties")
             }
         }
