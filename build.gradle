@@ -84,6 +84,14 @@ sourceSets {
             runtimeClasspath += main.output
         }
     }
+    loom12 {
+        java {
+            compileClasspath += main.compileClasspath
+            runtimeClasspath += main.runtimeClasspath
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+        }
+    }
 }
 
 dependencies {
@@ -100,8 +108,9 @@ dependencies {
     loom011CompileOnly "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.10"
     loom011CompileOnly "org.jetbrains.kotlin:kotlin-reflect:1.5.10"
     loom11CompileOnly "dev.architectury:architectury-loom:$loom_version_11"
+    loom12CompileOnly "dev.architectury:architectury-loom:$loom_version_12"
     implementation "dev.architectury:tiny-remapper:1.1.0"
-    implementation "com.google.code.gson:gson:2.8.5"
+    implementation "com.google.code.gson:gson:2.10.1"
 }
 
 tasks.withType(KotlinCompile) {
@@ -116,7 +125,7 @@ jar {
         attributes 'Implementation-Version': project.version
     }
 
-    from sourceSets.loom06.output + sourceSets.loom09.output + sourceSets.loom010Legacy.output + sourceSets.loom010.output + sourceSets.loom011.output + sourceSets.loom11.output
+    from sourceSets.loom06.output + sourceSets.loom09.output + sourceSets.loom010Legacy.output + sourceSets.loom010.output + sourceSets.loom011.output + sourceSets.loom11.output + sourceSets.loom12.output
 }
 
 gradlePlugin {
