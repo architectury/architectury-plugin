@@ -64,7 +64,7 @@ class LoomInterface11(private val project: Project) : LoomInterface {
 
     override fun setRemapJarInput(task: Jar, archiveFile: Provider<RegularFile>) {
         task as RemapJarTask
-        task.input.set(archiveFile)
+        task.inputFile.set(archiveFile)
     }
 
     class LoomRunConfigImpl(private val config: RunConfig) : LoomInterface.LoomRunConfig {
