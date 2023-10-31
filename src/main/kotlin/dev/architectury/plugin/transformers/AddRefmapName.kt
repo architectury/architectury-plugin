@@ -11,49 +11,58 @@ import dev.architectury.transformer.util.Logger
 import java.io.ByteArrayInputStream
 
 class AddRefmapName : AssetEditTransformer {
-    val gson = GsonBuilder().setPrettyPrinting().create()
-    override fun doEdit(context: TransformerContext, output: FileAccess) {
-        val mixins = mutableSetOf<String>()
-        output.handle { path, bytes ->
-            // Check JSON file in root directory
-            if (path.endsWith(".json") && !Transform.trimLeadingSlash(path)
-                    .contains("/") && !Transform.trimLeadingSlash(path).contains("\\")
-            ) {
-                Logger.debug("Checking whether $path is a mixin config.")
-                try {
-                    val json = gson.fromJson(ByteArrayInputStream(bytes).reader(), JsonObject::class.java)
-                    if (json != null) {
-                        val hasMixins = json.has("mixins") && json["mixins"].isJsonArray
-                        val hasClient = json.has("client") && json["client"].isJsonArray
-                        val hasServer = json.has("server") && json["server"].isJsonArray
-                        if (json.has("package") && (hasMixins || hasClient || hasServer)) {
-                            if (!json.has("refmap") || !json.has("minVersion")) {
-                                mixins.add(path)
-                            }
-                        }
-                    }
-                } catch (_: Exception) {
-                }
-            }
-        }
-        if (mixins.isNotEmpty()) {
-            Logger.debug("Found mixin config(s): " + java.lang.String.join(",", mixins))
-        }
-        val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME)
-        mixins.forEach { path ->
-            output.modifyFile(path) {
-                val json: JsonObject = gson.fromJson<JsonObject>(
-                    ByteArrayInputStream(it).reader(),
-                    JsonObject::class.java
-                )
+	val gson = GsonBuilder().setPrettyPrinting().create()
+	override fun doEdit(context: TransformerContext, output: FileAccess) {
+		val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME)
+		var refmapFound = false
+		val mixins = mutableSetOf<String>()
+		output.handle { path, bytes ->
+			// Check JSON file in root directory
+			if (path.endsWith(".json") && !Transform.trimLeadingSlash(path)
+					.contains("/") && !Transform.trimLeadingSlash(path).contains("\\")
+			) {
+				Logger.debug("Checking whether $path is a mixin config.")
+				try {
+					val json = gson.fromJson(ByteArrayInputStream(bytes).reader(), JsonObject::class.java)
+					if (json != null) {
+						val hasMixins = json.has("mixins") && json["mixins"].isJsonArray
+						val hasClient = json.has("client") && json["client"].isJsonArray
+						val hasServer = json.has("server") && json["server"].isJsonArray
+						if (json.has("package") && (hasMixins || hasClient || hasServer)) {
+							if (!json.has("refmap") || !json.has("minVersion")) {
+								mixins.add(path)
+							}
+						}
+					}
+				} catch (_: Exception) {
+				}
 
-                if (!json.has("refmap")) {
-                    Logger.debug("Injecting $refmap to $path")
-                    json.addProperty("refmap", refmap)
-                }
+				Logger.debug("Checking whether $path is a mixin refmap.")
+				if (path.endsWith(refmap)) {
+					Logger.debug("Found mixin refmap: $path")
+					refmapFound = true
+				}
+			}
+		}
+		if (mixins.isNotEmpty()) {
+			Logger.debug("Found mixin config(s): " + java.lang.String.join(",", mixins))
+		}
+		if (refmapFound) {
+			mixins.forEach { path ->
+				output.modifyFile(path) {
+					val json: JsonObject = gson.fromJson<JsonObject>(
+						ByteArrayInputStream(it).reader(),
+						JsonObject::class.java
+					)
 
-                gson.toJson(json).toByteArray()
-            }
-        }
-    }
+					if (!json.has("refmap")) {
+						Logger.debug("Injecting $refmap to $path")
+						json.addProperty("refmap", refmap)
+					}
+
+					gson.toJson(json).toByteArray()
+				}
+			}
+		}
+	}
 }
