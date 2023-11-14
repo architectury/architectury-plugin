@@ -30,7 +30,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "5.2.77"
+    var transformerVersion = "5.2.78"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     private var compileOnly = false
@@ -265,6 +265,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
     data class CommonSettings(
         val loaders: MutableSet<ModLoader> = LinkedHashSet(),
+        val platformPackages: MutableMap<ModLoader, String> = mutableMapOf(),
     ) {
         constructor(loaders: Array<String>) : this() {
             this.loaders.addAll(loaders.map { ModLoader.valueOf(it) })
@@ -307,6 +308,14 @@ open class ArchitectPluginExtension(val project: Project) {
 
         fun clear() {
             loaders.clear()
+        }
+
+        fun platformPackage(loader: String, packageName: String) {
+            platformPackages[ModLoader.valueOf(loader)] = packageName
+        }
+
+        fun platformPackage(loader: ModLoader, packageName: String) {
+            platformPackages[loader] = packageName
         }
     }
 
@@ -391,7 +400,7 @@ open class ArchitectPluginExtension(val project: Project) {
                 project.tasks.register("transformProduction${loader.titledId}", TransformingTask::class.java) {
                     it.group = "Architectury"
                     it.platform = loader.id
-                    loader.transformProduction(it, loom)
+                    loader.transformProduction(it, loom, settings)
 
                     it.archiveClassifier.set("transformProduction${loader.titledId}")
                     it.input.set(jarTask.archiveFile)
@@ -439,7 +448,8 @@ data class Transform(
     val project: Project,
     val devConfigName: String,
     val transformers: MutableList<Function<Path, TransformerPair>> = mutableListOf(),
-    var envAnnotationProvider: String = "net.fabricmc:fabric-loader:+"
+    var envAnnotationProvider: String = "net.fabricmc:fabric-loader:+",
+    var platformPackage: String? = null,
 ) {
     operator fun plusAssign(transformer: TransformerPair) {
         transformers.add(Function { transformer })

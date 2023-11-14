@@ -7,7 +7,7 @@ import dev.architectury.transformer.transformers.*
 open class ModLoader(
     val id: String,
     val transformDevelopment: Transform.() -> Unit,
-    val transformProduction: TransformingTask.(loom: LoomInterface) -> Unit,
+    val transformProduction: TransformingTask.(loom: LoomInterface, settings: ArchitectPluginExtension.CommonSettings) -> Unit,
 ) {
     init {
         LOADERS[id] = this
@@ -23,20 +23,27 @@ open class ModLoader(
         val FABRIC = ModLoader(
             id = "fabric",
             transformDevelopment = {
+                val transform = this
                 this += RuntimeMixinRefmapDetector::class.java
                 this += GenerateFakeFabricMod::class.java
                 add(TransformExpectPlatform::class.java) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                    if (transform.platformPackage != null) {
+                        this[BuiltinProperties.PLATFORM_PACKAGE] = transform.platformPackage!!
+                    }
                 }
                 add(RemapInjectables::class.java) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
                 this += TransformPlatformOnly::class.java
             },
-            transformProduction = {
+            transformProduction = { _, settings ->
                 this += RemapMixinVariables()
                 add(TransformExpectPlatform()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                    settings.platformPackages[valueOf("fabric")]?.let { platformPackage ->
+                        this[BuiltinProperties.PLATFORM_PACKAGE] = platformPackage
+                    }
                 }
                 add(RemapInjectables()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
@@ -49,9 +56,13 @@ open class ModLoader(
         val FORGE = ModLoader(
             id = "forge",
             transformDevelopment = {
+                val transform = this
                 this += RuntimeMixinRefmapDetector::class.java
                 add(TransformExpectPlatform::class.java) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                    if (transform.platformPackage != null) {
+                        this[BuiltinProperties.PLATFORM_PACKAGE] = transform.platformPackage!!
+                    }
                 }
                 add(RemapInjectables::class.java) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
@@ -63,9 +74,12 @@ open class ModLoader(
                 this += GenerateFakeForgeMod::class.java
                 this += FixForgeMixin::class.java
             },
-            transformProduction = { loom ->
+            transformProduction = { loom, settings ->
                 add(TransformExpectPlatform()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                    settings.platformPackages[valueOf("forge")]?.let { platformPackage ->
+                        this[BuiltinProperties.PLATFORM_PACKAGE] = platformPackage
+                    }
                 }
                 add(RemapInjectables()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
@@ -84,8 +98,12 @@ open class ModLoader(
         val NEOFORGE = object : ModLoader(
             id = "neoforge",
             transformDevelopment = {
+                val transform = this
                 add(TransformExpectPlatform::class.java) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                    if (transform.platformPackage != null) {
+                        this[BuiltinProperties.PLATFORM_PACKAGE] = transform.platformPackage!!
+                    }
                 }
                 add(RemapInjectables::class.java) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
@@ -96,9 +114,12 @@ open class ModLoader(
                 this += TransformNeoForgeEnvironment::class.java
                 this += GenerateFakeNeoForgeMod::class.java
             },
-            transformProduction = { loom ->
+            transformProduction = { _, settings ->
                 add(TransformExpectPlatform()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                    settings.platformPackages[valueOf("neoforge")]?.let { platformPackage ->
+                        this[BuiltinProperties.PLATFORM_PACKAGE] = platformPackage
+                    }
                 }
                 add(RemapInjectables()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
@@ -116,10 +137,14 @@ open class ModLoader(
         val QUILT = ModLoader(
             id = "quilt",
             transformDevelopment = {
+                val transform = this
                 this += RuntimeMixinRefmapDetector::class.java
                 this += GenerateFakeQuiltMod::class.java
                 add(TransformExpectPlatform::class.java) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                    if (transform.platformPackage != null) {
+                        this[BuiltinProperties.PLATFORM_PACKAGE] = transform.platformPackage!!
+                    }
                 }
                 add(RemapInjectables::class.java) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
@@ -127,10 +152,13 @@ open class ModLoader(
                 this += TransformPlatformOnly::class.java
                 envAnnotationProvider = "org.quiltmc:quilt-loader:+"
             },
-            transformProduction = {
+            transformProduction = { _, settings ->
                 this += RemapMixinVariables()
                 add(TransformExpectPlatform()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                    settings.platformPackages[valueOf("quilt")]?.let { platformPackage ->
+                        this[BuiltinProperties.PLATFORM_PACKAGE] = platformPackage
+                    }
                 }
                 add(RemapInjectables()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
