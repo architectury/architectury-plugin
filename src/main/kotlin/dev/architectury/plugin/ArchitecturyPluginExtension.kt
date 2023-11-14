@@ -30,7 +30,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "5.2.75"
+    var transformerVersion = "5.2.77"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     private var compileOnly = false
@@ -87,7 +87,7 @@ open class ArchitectPluginExtension(val project: Project) {
             }
         }
     }
-    
+
     fun compileOnly() {
         if (compileOnly) {
             throw IllegalStateException("compileOnly() can only be called once for project ${project.path}!")
@@ -98,16 +98,21 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun properties(platform: String): Map<String, String> {
-        return mutableMapOf(
+        val map = mutableMapOf(
             BuiltinProperties.MIXIN_MAPPINGS to loom.allMixinMappings.joinToString(File.pathSeparator),
             BuiltinProperties.INJECT_INJECTABLES to injectInjectables.toString(),
             BuiltinProperties.UNIQUE_IDENTIFIER to project.projectUniqueIdentifier(),
             BuiltinProperties.COMPILE_CLASSPATH to getCompileClasspath().joinToString(File.pathSeparator),
-            BuiltinProperties.MAPPINGS_WITH_SRG to loom.tinyMappingsWithSrg.toString(),
             BuiltinProperties.PLATFORM_NAME to platform,
-            BuiltinProperties.REFMAP_NAME to loom.refmapName,
             BuiltinProperties.MCMETA_VERSION to "4"
         )
+
+        if (platform != "neoforge") {
+            map[BuiltinProperties.REFMAP_NAME] = loom.refmapName
+            map[BuiltinProperties.MAPPINGS_WITH_SRG] = loom.tinyMappingsWithSrg.toString()
+        }
+
+        return map
     }
 
     fun prepareTransformer() {
@@ -145,7 +150,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
     fun transform(name: String, action: Action<Transform>) {
         transforms.getOrPut(name) {
-            Transform(project, "development" + name.capitalize()).also { transform ->
+            Transform(project, "development" + (if (name == "neoforge") "NeoForge" else name.capitalize())).also { transform ->
                 if (!compileOnly) {
                     project.configurations.maybeCreate(transform.devConfigName)
                 }
@@ -231,6 +236,11 @@ open class ArchitectPluginExtension(val project: Project) {
     @JvmOverloads
     fun forge(action: Action<Transform> = Action {}) {
         loader(ModLoader.FORGE, action)
+    }
+
+    @JvmOverloads
+    fun neoForge(action: Action<Transform> = Action {}) {
+        loader(ModLoader.NEOFORGE, action)
     }
 
     @JvmOverloads

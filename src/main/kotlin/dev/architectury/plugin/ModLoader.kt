@@ -4,7 +4,7 @@ import dev.architectury.plugin.loom.LoomInterface
 import dev.architectury.plugin.transformers.AddRefmapName
 import dev.architectury.transformer.transformers.*
 
-class ModLoader(
+open class ModLoader(
     val id: String,
     val transformDevelopment: Transform.() -> Unit,
     val transformProduction: TransformingTask.(loom: LoomInterface) -> Unit,
@@ -13,7 +13,7 @@ class ModLoader(
         LOADERS[id] = this
     }
 
-    val titledId = id.capitalize()
+    open val titledId = id.capitalize()
 
     companion object {
         fun valueOf(id: String): ModLoader =
@@ -80,6 +80,38 @@ class ModLoader(
                 loom.generateSrgTiny = true
             }
         )
+
+        val NEOFORGE = object : ModLoader(
+            id = "neoforge",
+            transformDevelopment = {
+                add(TransformExpectPlatform::class.java) { file ->
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                }
+                add(RemapInjectables::class.java) { file ->
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                }
+                this += TransformPlatformOnly::class.java
+
+                this += TransformNeoForgeAnnotations::class.java
+                this += TransformNeoForgeEnvironment::class.java
+                this += GenerateFakeNeoForgeMod::class.java
+            },
+            transformProduction = { loom ->
+                add(TransformExpectPlatform()) { file ->
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                }
+                add(RemapInjectables()) { file ->
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
+                }
+                this += TransformPlatformOnly()
+
+                this += TransformNeoForgeAnnotations()
+                this += TransformNeoForgeEnvironment()
+            }
+        ) {
+            override val titledId: String
+                get() = "NeoForge"
+        }
 
         val QUILT = ModLoader(
             id = "quilt",
