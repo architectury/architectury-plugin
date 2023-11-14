@@ -30,7 +30,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "5.2.78"
+    var transformerVersion = "5.2.79"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     private var compileOnly = false
