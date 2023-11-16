@@ -30,7 +30,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "5.2.79"
+    var transformerVersion = "5.2.80"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
     private var compileOnly = false
@@ -126,6 +126,15 @@ open class ArchitectPluginExtension(val project: Project) {
                                     writer.write(file.toPath(), pair.clazz, pair.properties)
                                 }
                         }
+
+                        if (transform.name == "neoforge") {
+                            project.configurations.getByName("developmentForgeLike").forEach { file ->
+                                (transform.transformers.map { it.apply(file.toPath()) } + ModLoader.applyNeoForgeForgeLikeDev(loom, transform))
+                                    .forEach { pair ->
+                                        writer.write(file.toPath(), pair.clazz, pair.properties)
+                                    }
+                            }
+                        }
                     }
                 }
 
@@ -150,9 +159,13 @@ open class ArchitectPluginExtension(val project: Project) {
 
     fun transform(name: String, action: Action<Transform>) {
         transforms.getOrPut(name) {
-            Transform(project, "development" + (if (name == "neoforge") "NeoForge" else name.capitalize())).also { transform ->
+            Transform(project, name, "development" + (if (name == "neoforge") "NeoForge" else name.capitalize())).also { transform ->
                 if (!compileOnly) {
                     project.configurations.maybeCreate(transform.devConfigName)
+
+                    if (name == "neoforge") {
+                        project.configurations.maybeCreate("developmentForgeLike")
+                    }
                 }
                 action.execute(transform)
 
@@ -437,6 +450,21 @@ open class ArchitectPluginExtension(val project: Project) {
             })
         } as Jar
     }
+
+    fun forgeLike(action: Action<CommonSettings>) {
+        common {
+            clear()
+            action.execute(this)
+        }
+    }
+
+    @JvmOverloads
+    fun forgeLike(platforms: Iterable<String>, action: CommonSettings.() -> Unit = {}) {
+        forgeLike {
+            it.add(platforms)
+            action(it)
+        }
+    }
 }
 
 private fun File.createEmptyJar() {
@@ -446,11 +474,17 @@ private fun File.createEmptyJar() {
 
 data class Transform(
     val project: Project,
+    val name: String,
     val devConfigName: String,
     val transformers: MutableList<Function<Path, TransformerPair>> = mutableListOf(),
     var envAnnotationProvider: String = "net.fabricmc:fabric-loader:+",
     var platformPackage: String? = null,
+    val extraForgeLikeToNeoForgeRemaps: MutableMap<String, String> = mutableMapOf(),
 ) {
+    fun remapForgeLike(remap: String, to: String) {
+        extraForgeLikeToNeoForgeRemaps[remap] = to
+    }
+
     operator fun plusAssign(transformer: TransformerPair) {
         transformers.add(Function { transformer })
     }
