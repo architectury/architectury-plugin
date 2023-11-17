@@ -2,6 +2,7 @@
 
 package dev.architectury.plugin
 
+import dev.architectury.plugin.ModLoader.Companion.applyNeoForgeForgeLikeProd
 import dev.architectury.plugin.loom.LoomInterface
 import dev.architectury.plugin.utils.GradleSupport
 import dev.architectury.transformer.Transformer
@@ -279,9 +280,15 @@ open class ArchitectPluginExtension(val project: Project) {
     data class CommonSettings(
         val loaders: MutableSet<ModLoader> = LinkedHashSet(),
         val platformPackages: MutableMap<ModLoader, String> = mutableMapOf(),
+        var isForgeLike: Boolean = false,
+        val extraForgeLikeToNeoForgeRemaps: MutableMap<String, String> = mutableMapOf(),
     ) {
         constructor(loaders: Array<String>) : this() {
             this.loaders.addAll(loaders.map { ModLoader.valueOf(it) })
+        }
+
+        fun remapForgeLike(remap: String, to: String) {
+            extraForgeLikeToNeoForgeRemaps[remap] = to
         }
 
         @Deprecated("Use add and remove directly")
@@ -415,6 +422,10 @@ open class ArchitectPluginExtension(val project: Project) {
                     it.platform = loader.id
                     loader.transformProduction(it, loom, settings)
 
+                    if (settings.isForgeLike && loader.id == "neoforge") {
+                        it.addPost(applyNeoForgeForgeLikeProd(loom, settings))
+                    }
+
                     it.archiveClassifier.set("transformProduction${loader.titledId}")
                     it.input.set(jarTask.archiveFile)
 
@@ -454,6 +465,7 @@ open class ArchitectPluginExtension(val project: Project) {
     fun forgeLike(action: Action<CommonSettings>) {
         common {
             clear()
+            isForgeLike = true
             action.execute(this)
         }
     }

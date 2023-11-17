@@ -2,8 +2,10 @@ package dev.architectury.plugin
 
 import dev.architectury.plugin.loom.LoomInterface
 import dev.architectury.plugin.transformers.AddRefmapName
+import dev.architectury.transformer.Transformer
 import dev.architectury.transformer.shadowed.impl.com.google.gson.Gson
 import dev.architectury.transformer.transformers.*
+import dev.architectury.transformer.transformers.base.ClassEditTransformer
 import dev.architectury.transformer.util.TransformerPair
 
 open class ModLoader(
@@ -140,6 +142,14 @@ open class ModLoader(
             val properties = mutableMapOf<String, Any>()
             properties[BuiltinProperties.NEOFORGE_LIKE_REMAPS] = transform.extraForgeLikeToNeoForgeRemaps
             return listOf(TransformerPair(TransformForgeLikeToNeoForge::class.java, Gson().toJsonTree(properties).asJsonObject))
+        }
+
+        fun applyNeoForgeForgeLikeProd(loom: LoomInterface, settings: ArchitectPluginExtension.CommonSettings): ClassEditTransformer {
+            val properties = mutableMapOf<String, Any>()
+            properties[BuiltinProperties.NEOFORGE_LIKE_REMAPS] = settings.extraForgeLikeToNeoForgeRemaps
+            val transform = TransformForgeLikeToNeoForge()
+            transform.supplyProperties(Gson().toJsonTree(properties).asJsonObject)
+            return transform
         }
 
         val QUILT = ModLoader(
