@@ -13,6 +13,7 @@ import java.io.ByteArrayInputStream
 class AddRefmapName : AssetEditTransformer {
     val gson = GsonBuilder().setPrettyPrinting().create()
     override fun doEdit(context: TransformerContext, output: FileAccess) {
+        val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME) ?: return
         val mixins = mutableSetOf<String>()
         output.handle { path, bytes ->
             // Check JSON file in root directory
@@ -39,7 +40,6 @@ class AddRefmapName : AssetEditTransformer {
         if (mixins.isNotEmpty()) {
             Logger.debug("Found mixin config(s): " + java.lang.String.join(",", mixins))
         }
-        val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME)
         mixins.forEach { path ->
             output.modifyFile(path) {
                 val json: JsonObject = gson.fromJson<JsonObject>(
