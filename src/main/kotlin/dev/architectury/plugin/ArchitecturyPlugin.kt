@@ -21,14 +21,10 @@ class ArchitecturyPlugin : Plugin<Project> {
 
         LoggerFilter.replaceSystemOut()
 
-        project.apply(
-            mapOf(
-                "plugin" to "java",
-                "plugin" to "eclipse",
-                "plugin" to "idea",
-                "plugin" to "org.jetbrains.gradle.plugin.idea-ext"
-            )
-        )
+        project.pluginManager.apply( "java" )
+        project.pluginManager.apply( "eclipse" )
+        project.pluginManager.apply( "idea" )
+        project.pluginManager.apply( "org.jetbrains.gradle.plugin.idea-ext" )
 
         project.afterEvaluate {
             val ideaModel = project.extensions.getByName("idea") as IdeaModel
