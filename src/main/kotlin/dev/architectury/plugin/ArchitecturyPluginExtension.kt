@@ -109,7 +109,10 @@ open class ArchitectPluginExtension(val project: Project) {
         )
 
         if (platform != "neoforge") {
-            map[BuiltinProperties.REFMAP_NAME] = loom.refmapName
+            if (loom.legacyMixinApEnabled) {
+                map[BuiltinProperties.REFMAP_NAME] = loom.refmapName
+            }
+
             map[BuiltinProperties.MAPPINGS_WITH_SRG] = loom.tinyMappingsWithSrg.toString()
         }
 

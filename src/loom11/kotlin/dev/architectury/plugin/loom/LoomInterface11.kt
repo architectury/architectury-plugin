@@ -50,6 +50,9 @@ class LoomInterface11(private val project: Project) : LoomInterface {
             extension.setGenerateSrgTiny(value)
         }
 
+    override val legacyMixinApEnabled: Boolean
+        get() = extension.mixin.useLegacyMixinAp.get()
+
     override val generateTransformerPropertiesInTask = true
 
     override fun settingsPostEdit(action: (config: LoomInterface.LoomRunConfig) -> Unit) {
