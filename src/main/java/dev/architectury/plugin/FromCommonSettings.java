@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Settings to configure {@link ArchitectPluginExtension#fromCommon(Object) architectury.fromCommon}.
+ */
 public interface FromCommonSettings {
     /**
      * The configuration for bundling common projects.
@@ -37,6 +40,9 @@ public interface FromCommonSettings {
         bundle(new ClosureAction<>(action));
     }
 
+    /**
+     * Settings to configure how common files are bundled.
+     */
     abstract class BundleSettings {
         final List<Action<CopySpec>> configActions = new ArrayList<>(0);
 
@@ -47,7 +53,7 @@ public interface FromCommonSettings {
         public abstract Property<Boolean> getEnabled();
 
         /**
-         * Configures the bundling copy action.
+         * Configures the {@link CopySpec} that bundles the common files.
          *
          * @param action the action that configures it
          */
@@ -57,7 +63,7 @@ public interface FromCommonSettings {
         }
 
         /**
-         * Configures the bundling copy action.
+         * Configures the {@link CopySpec} that bundles the common files.
          *
          * @param action the closure that configures it
          */
