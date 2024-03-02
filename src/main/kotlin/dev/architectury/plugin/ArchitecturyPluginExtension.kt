@@ -4,6 +4,7 @@ package dev.architectury.plugin
 
 import dev.architectury.plugin.ModLoader.Companion.applyNeoForgeForgeLikeProd
 import dev.architectury.plugin.loom.LoomInterface
+import dev.architectury.plugin.utils.EmptyAction
 import dev.architectury.plugin.utils.GradleSupport
 import dev.architectury.transformer.Transformer
 import dev.architectury.transformer.input.OpenedFileAccess
@@ -13,6 +14,7 @@ import dev.architectury.transformer.shadowed.impl.com.google.gson.JsonObject
 import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.transformers.properties.TransformersWriter
 import dev.architectury.transformer.util.TransformerPair
+import groovy.lang.Closure
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -38,6 +40,7 @@ open class ArchitectPluginExtension(val project: Project) {
     var injectInjectables = true
     var addCommonMarker = true
     private val transforms = mutableMapOf<String, Transform>()
+    private var loader: ModLoader? = null
     private var transformedLoom = false
     private val agentFile by lazy {
         project.gradle.rootProject.file(".gradle/architectury/architectury-transformer-agent.jar").also {
@@ -267,6 +270,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
     @JvmOverloads
     fun loader(loader: ModLoader, action: Action<Transform> = Action {}) {
+        this.loader = loader
         transform(loader.id, Action {
             if (!compileOnly) {
                 loader.transformDevelopment(it)
@@ -478,6 +482,77 @@ open class ArchitectPluginExtension(val project: Project) {
         forgeLike {
             it.add(platforms)
             action(it)
+        }
+    }
+
+    /**
+     * Inherits this loader-specific project from a common project.
+     * This function also sets up bundling by default, which can be configured with the [action].
+     *
+     * The value of [commonProject] can be a [Project] object or a [CharSequence] of its path.
+     *
+     * This function must be called after the Architectury Plugin mod loader has been set.
+     */
+    @JvmOverloads
+    fun fromCommon(commonProject: Any?, action: Action<FromCommonSettings> = EmptyAction.cast()) {
+        val loader = this.loader
+            ?: throw IllegalStateException("architectury.fromCommon must be called after the loader has been set")
+
+        // Resolve the project
+        val (commonPath, common) = when (commonProject) {
+            is Project -> Pair(commonProject.path, commonProject)
+            is CharSequence -> {
+                val path = commonProject.toString()
+                Pair(path, project.project(path))
+            }
+            else -> throw IllegalArgumentException("Cannot convert value '$commonProject' to a Gradle project")
+        }
+
+        // Find the production jar from the common project.
+        val productionCommonJar = common.tasks.named(
+            "transformProduction${loader.titledId}",
+            TransformingTask::class.java
+        )
+
+        // Create settings object, initialise it with defaults and pass it through the action.
+        val settings = project.objects.newInstance(FromCommonSettings::class.java)
+        with(settings) {
+            val defaultBundle = project.objects.newInstance(FromCommonSettings.BundleSettings::class.java)
+            bundle.convention(defaultBundle)
+            defaultBundle.enabled.convention(true)
+            action.execute(this)
+        }
+
+        // Add compile + runtime dependency for the common project.
+        val commonDevDep = project.dependencies.project(
+            mapOf(
+                "path" to commonPath,
+                "configuration" to "namedElements"
+            )
+        )
+        if (commonDevDep is ModuleDependency) {
+            commonDevDep.isTransitive = false
+        }
+        project.dependencies.add(JavaPlugin.IMPLEMENTATION_CONFIGURATION_NAME, commonDevDep)
+
+        if (!compileOnly) {
+            // If not in compile-only mode, also add it to the transform-related configuration.
+            // Note: relies on the transform having the same id as the loader.
+            val devConfig = transforms.getValue(loader.id).devConfigName
+            project.dependencies.add(devConfig, commonDevDep)
+        }
+
+        // Set up bundling.
+        val bundle = settings.bundle.get()
+        if (bundle.enabled.get()) {
+            project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java) {
+                it.dependsOn(productionCommonJar)
+                it.from(project.zipTree(productionCommonJar.flatMap { jar -> jar.archiveFile })) { spec ->
+                    for (copyAction in bundle.configActions) {
+                        copyAction.execute(spec)
+                    }
+                }
+            }
         }
     }
 }
