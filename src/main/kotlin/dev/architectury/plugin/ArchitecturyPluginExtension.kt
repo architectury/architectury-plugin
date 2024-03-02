@@ -14,7 +14,6 @@ import dev.architectury.transformer.shadowed.impl.com.google.gson.JsonObject
 import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.transformers.properties.TransformersWriter
 import dev.architectury.transformer.util.TransformerPair
-import groovy.lang.Closure
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.Task
