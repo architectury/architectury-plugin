@@ -2,8 +2,8 @@ package dev.architectury.plugin.utils
 
 import org.gradle.api.Action
 
-internal object EmptyAction : Action<Nothing> {
-    override fun execute(value: Nothing) {
+internal object EmptyAction : Action<Any?> {
+    override fun execute(value: Any?) {
     }
 
     @Suppress("UNCHECKED_CAST")
