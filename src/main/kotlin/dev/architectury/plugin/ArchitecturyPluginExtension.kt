@@ -31,9 +31,10 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
 open class ArchitectPluginExtension(val project: Project) {
-    var transformerVersion = "5.2.83"
+    var transformerVersion = "5.2.86"
     var injectablesVersion = "1.0.10"
     var minecraft = ""
+    internal var forgeUsesMojangMappings = false
     private var compileOnly = false
     var injectInjectables = true
     var addCommonMarker = true
@@ -115,6 +116,8 @@ open class ArchitectPluginExtension(val project: Project) {
 
             map[BuiltinProperties.MAPPINGS_WITH_SRG] = loom.tinyMappingsWithSrg.toString()
         }
+
+        map[BuiltinProperties.FORGE_FIX_MIXINS] = (!this.forgeUsesMojangMappings).toString()
 
         return map
     }
@@ -284,6 +287,7 @@ open class ArchitectPluginExtension(val project: Project) {
         val loaders: MutableSet<ModLoader> = LinkedHashSet(),
         val platformPackages: MutableMap<ModLoader, String> = mutableMapOf(),
         var isForgeLike: Boolean = false,
+        var forgeUsesMojangMappings : Boolean = false,
         val extraForgeLikeToNeoForgeRemaps: MutableMap<String, String> = mutableMapOf(),
     ) {
         constructor(loaders: Array<String>) : this() {
@@ -383,6 +387,7 @@ open class ArchitectPluginExtension(val project: Project) {
             it.loaders += ModLoader.FORGE
             action.execute(it)
         }
+        this.forgeUsesMojangMappings = settings.forgeUsesMojangMappings
 
         if (injectInjectables && !compileOnly) {
             var plsAddInjectables = false

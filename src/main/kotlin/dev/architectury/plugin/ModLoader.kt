@@ -88,12 +88,15 @@ open class ModLoader(
                 add(RemapInjectables()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                 }
-                this += AddRefmapName()
                 this += TransformPlatformOnly()
 
                 this += TransformForgeAnnotations()
                 this += TransformForgeEnvironment()
-                this += FixForgeMixin()
+
+                if (!(project.extensions.getByName("architectury") as ArchitectPluginExtension).forgeUsesMojangMappings) {
+                    this += AddRefmapName()
+                    this += FixForgeMixin()
+                }
 
                 loom.generateSrgTiny = true
             }
