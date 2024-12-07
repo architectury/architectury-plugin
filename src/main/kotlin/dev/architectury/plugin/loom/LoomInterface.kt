@@ -26,6 +26,9 @@ interface LoomInterface {
             }
 
             return useIfFound(
+                "net.fabricmc.loom.util.service.ScopedServiceFactory",
+                "dev.architectury.plugin.loom.LoomInterface11" // 1.8
+            ) ?: useIfFound(
                 "net.fabricmc.loom.util.service.ScopedSharedServiceManager",
                 "dev.architectury.plugin.loom.LoomInterface11" // 1.1
             ) ?: useIfFound(
