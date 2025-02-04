@@ -79,6 +79,10 @@ open class TransformingTask : Jar() {
         }
     }
 
+    override fun copy() {
+        // do nothing
+    }
+
     private fun ClassNode.toByteArray(): ByteArray {
         val writer = ClassWriter(0)
         this.accept(writer)
