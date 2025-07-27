@@ -2,7 +2,6 @@ package dev.architectury.plugin
 
 import dev.architectury.plugin.loom.LoomInterface
 import dev.architectury.plugin.transformers.AddRefmapName
-import dev.architectury.transformer.Transformer
 import dev.architectury.transformer.shadowed.impl.com.google.gson.Gson
 import dev.architectury.transformer.transformers.*
 import dev.architectury.transformer.transformers.base.ClassEditTransformer
