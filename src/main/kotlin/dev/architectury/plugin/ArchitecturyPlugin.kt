@@ -18,7 +18,7 @@ import org.jetbrains.gradle.ext.ActionDelegationConfig
 import java.io.File
 import java.net.URI
 
-internal class ArchitecturyPlugin : Plugin<Project> {
+class ArchitecturyPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         project.applyPlugin()
     }
