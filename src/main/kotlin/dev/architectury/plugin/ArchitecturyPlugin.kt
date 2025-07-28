@@ -2,10 +2,9 @@ package dev.architectury.plugin
 
 import dev.architectury.plugin.ModLoader.Companion.applyNeoForgeForgeLikeProd
 import dev.architectury.plugin.loom.LoomInterface
-import dev.architectury.plugin.utils.GradleSupport
+import dev.architectury.plugin.utils.gradle8
 import dev.architectury.transformer.input.OpenedFileAccess
 import dev.architectury.transformer.transformers.BuiltinProperties
-import dev.architectury.transformer.transformers.properties.TransformersWriter
 import dev.architectury.transformer.util.LoggerFilter
 import org.gradle.api.Action
 import org.gradle.api.Plugin
@@ -19,9 +18,7 @@ import org.gradle.jvm.tasks.Jar
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.jetbrains.gradle.ext.ActionDelegationConfig
 import java.io.File
-import java.io.StringWriter
 import java.net.URI
-import java.util.*
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
@@ -78,8 +75,6 @@ class ArchitecturyPlugin : Plugin<Project> {
             it.parentFile.mkdirs()
         }
 
-        // We use compileOnly on Gradle 8+, I am not sure of the consequences of using compileOnly on Gradle 7
-        val gradle8: Boolean = GradleSupport.isGradle8(project)
 
         fun properties(platform: String): Map<String, String> = with(architectury) {
             val map = mutableMapOf(
@@ -109,7 +104,7 @@ class ArchitecturyPlugin : Plugin<Project> {
         }
 
         with(architectury) {
-            transforms.forEach { name,transform->
+            transforms.forEach { name, transform ->
                 if (!compileOnly) {
                     project.configurations.maybeCreate(transform.devConfigName)
 
@@ -133,6 +128,7 @@ class ArchitecturyPlugin : Plugin<Project> {
 
                     with(project.dependencies) {
                         // We are trying to not leak to consumers that we are using architectury-transformer
+                        // We use compileOnly on Gradle 8+, I am not sure of the consequences of using compileOnly on Gradle 7
                         if (gradle8) {
                             val customRuntimeClasspath =
                                 project.configurations.findByName("architecturyTransformerRuntimeClasspath")
@@ -229,25 +225,23 @@ class ArchitecturyPlugin : Plugin<Project> {
             if (settings != null)
                 for (loader in settings.loaders) {
                     project.configurations.maybeCreate("transformProduction${loader.titledId}")
-                    val transformProductionTask =
-                        project.tasks.register("transformProduction${loader.titledId}", TransformingTask::class.java) {
-                            it.group = "Architectury"
-                            it.platform = loader.id
-                            loader.transformProduction(it, loom, settings)
+                    project.tasks.register("transformProduction${loader.titledId}", TransformingTask::class.java) {
+                        it.group = "Architectury"
+                        it.platform = loader.id
+                        it.transformerProperties.set(properties(loader.id))
+                        loader.transformProduction(it, loom, settings)
 
-                            if (settings.isForgeLike && loader.id == "neoforge") {
-                                it.addPost(applyNeoForgeForgeLikeProd(loom, settings))
-                            }
-
-                            it.archiveClassifier.set("transformProduction${loader.titledId}")
-                            it.input.set(jarTask.archiveFile)
-
-                            project.artifacts.add("transformProduction${loader.titledId}", it)
-                            it.dependsOn(jarTask)
-                            buildTask.dependsOn(it)
+                        if (settings.isForgeLike && loader.id == "neoforge") {
+                            it.addPost(applyNeoForgeForgeLikeProd(settings))
                         }
 
-                    transformProductionTask.get().archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
+                        it.archiveClassifier.set("transformProduction${loader.titledId}")
+                        it.input.set(jarTask.archiveFile)
+
+                        project.artifacts.add("transformProduction${loader.titledId}", it)
+                        it.dependsOn(jarTask)
+                        buildTask.dependsOn(it)
+                    }
                 }
 
             project.tasks.getByName("remapJar") {
@@ -256,7 +250,6 @@ class ArchitecturyPlugin : Plugin<Project> {
                 it.archiveClassifier.set("")
                 loom.setRemapJarInput(it, jarTask.archiveFile)
                 it.dependsOn(jarTask)
-                @Suppress("ObjectLiteralToLambda")
                 it.doLast(object : Action<Task> {
                     override fun execute(task: Task) {
                         if (addCommonMarker) {
@@ -267,52 +260,12 @@ class ArchitecturyPlugin : Plugin<Project> {
                                     inter.addFile("architectury.common.marker", "")
                                 }
                             } catch (_: Throwable) {
-                                project.logger.warn("Failed to add architectury.common.marker to ${output.absolutePath}")
+                                it.logger.warn("Failed to add architectury.common.marker to ${output.absolutePath}")
                             }
                         }
                     }
                 })
             } as Jar
-        }
-
-        fun prepareTransformer() = with(architectury) {
-            if (transforms.isNotEmpty() && !compileOnly) {
-                StringWriter().also { strWriter ->
-                    TransformersWriter(strWriter).use { writer ->
-                        for (transform in transforms.values) {
-                            project.configurations.getByName(transform.devConfigName).forEach { file ->
-                                transform.transformers.map { it.apply(file.toPath()) }
-                                    .forEach { pair ->
-                                        writer.write(file.toPath(), pair.clazz, pair.properties)
-                                    }
-                            }
-
-                            if (transform.name == "neoforge") {
-                                project.configurations.getByName("developmentForgeLike").forEach { file ->
-                                    (transform.transformers.map { it.apply(file.toPath()) } + ModLoader.applyNeoForgeForgeLikeDev(
-                                        loom,
-                                        transform
-                                    ))
-                                        .forEach { pair ->
-                                            writer.write(file.toPath(), pair.clazz, pair.properties)
-                                        }
-                                }
-                            }
-                        }
-                    }
-
-                    runtimeTransformerFile.writeText(strWriter.toString())
-                }
-
-
-                val properties = Properties()
-                properties(transforms.keys.first()).forEach { (key, value) ->
-                    properties.setProperty(key, value)
-                }
-                propertiesTransformerFile.writer(Charsets.UTF_8).use {
-                    properties.store(it, "Architectury Runtime Transformer Properties")
-                }
-            }
         }
 
         with(architectury) {
@@ -332,7 +285,13 @@ class ArchitecturyPlugin : Plugin<Project> {
                         }
                     }
                 } else {
-                    prepareTransformer()
+                    // TODO:
+                    prepareTransformer(
+                        compileOnly, transforms.values.toList(), properties(transforms.keys.first()),
+                        project.configurations.getByName("developmentNeoForge"),
+                        mapOf("" to project.configurations.getByName("developmentNeoForge")),
+                        propertiesTransformerFile, runtimeTransformerFile
+                    )
                 }
             }
 
@@ -354,3 +313,4 @@ private fun File.createEmptyJar() {
     parentFile.mkdirs()
     JarOutputStream(outputStream(), Manifest()).close()
 }
+

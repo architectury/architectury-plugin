@@ -9,67 +9,43 @@ import dev.architectury.transformer.shadowed.impl.com.google.gson.JsonObject
 import dev.architectury.transformer.util.TransformerPair
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.logging.Logging
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.function.BiConsumer
 import java.util.function.Function
 
-open class ArchitectPluginExtension(val project: Project) {
+open class ArchitectPluginExtension(private val projectPath: String, private val projectUniqueIdentifier: String) {
+    constructor(project: Project) : this(project.path, project.projectUniqueIdentifier())
+
     var transformerVersion = "5.2.87"
     var injectablesVersion = "1.0.10"
-
     var minecraft = ""
-    internal var compileOnly = false
     var injectInjectables = true
     var addCommonMarker = true
+    internal var compileOnly = false
     internal val transforms = mutableMapOf<String, Transform>()
-
     internal var platformSetupLoomIde = false
-
     internal var settings: CommonSettings? = null
     internal var transformedLoom = false
-//    private val agentFile by lazy {
-//        project.gradle.rootProject.file(".gradle/architectury/architectury-transformer-agent.jar").also {
-//            it.parentFile.mkdirs()
-//        }
-//    }
-//    private val mainClassTransformerFile by lazy {
-//        project.file(".gradle/architectury/.main_class").also {
-//            it.parentFile.mkdirs()
-//        }
-//    }
-//    private val runtimeTransformerFile by lazy {
-//        project.file(".gradle/architectury/.transforms").also {
-//            it.parentFile.mkdirs()
-//        }
-//    }
-//    private val propertiesTransformerFile by lazy {
-//        project.file(".gradle/architectury/.properties").also {
-//            it.parentFile.mkdirs()
-//        }
-//    }
-//    private val gradle8: Boolean by lazy {
-//        // We use compileOnly on Gradle 8+, I am not sure of the consequences of using compileOnly on Gradle 7
-//        GradleSupport.isGradle8(project)
-//    }
-//    private val loom: LoomInterface by lazy {
-//        LoomInterface.get(project)
-//    }
+
+    @Transient
+    private val logger = Logging.getLogger(ArchitectPluginExtension::class.java)
 
     fun compileOnly() {
         if (compileOnly) {
-            throw IllegalStateException("compileOnly() can only be called once for project ${project.path}!")
+            throw IllegalStateException("compileOnly() can only be called once for project ${projectPath}!")
         }
         compileOnly = true
         injectInjectables = false
-        project.logger.debug("Compile only mode enabled for ${project.path}. Injectables will not be injected.")
+        logger.debug("Compile only mode enabled for {}. Injectables will not be injected.", projectPath)
     }
 
 
     fun transform(name: String, action: Action<Transform>) {
         transforms.getOrPut(name) {
             Transform(
-                project,
+                projectUniqueIdentifier,
                 name,
                 "development" + (if (name == "neoforge") "NeoForge" else name.capitalize())
             ).also { transform ->
@@ -109,7 +85,7 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun common() {
-        project.logger.warn("architectury's common() is deprecated, use common(String... platforms) instead")
+        logger.warn("architectury's common() is deprecated, use common(String... platforms) instead")
         common {}
     }
 
@@ -180,7 +156,7 @@ open class ArchitectPluginExtension(val project: Project) {
     }
 
     fun common(forgeEnabled: Boolean) {
-        project.logger.warn("architectury's common(Boolean forgeEnabled) is deprecated, use common(String... platforms) instead")
+        logger.warn("architectury's common(Boolean forgeEnabled) is deprecated, use common(String... platforms) instead")
         common {
             if (!forgeEnabled) {
                 remove("forge")
@@ -237,7 +213,7 @@ open class ArchitectPluginExtension(val project: Project) {
 
 
 data class Transform(
-    val project: Project,
+    val projectUniqueIdentifier: String,
     val name: String,
     val devConfigName: String,
     val transformers: MutableList<Function<Path, TransformerPair>> = mutableListOf(),
@@ -245,6 +221,7 @@ data class Transform(
     var platformPackage: String? = null,
     val extraForgeLikeToNeoForgeRemaps: MutableMap<String, String> = mutableMapOf(),
 ) {
+
     fun remapForgeLike(remap: String, to: String) {
         extraForgeLikeToNeoForgeRemaps[remap] = to
     }
@@ -279,8 +256,13 @@ data class Transform(
     }
 }
 
-internal fun projectGeneratedPackage(project: Project, file: Path): String =
-    (project.projectUniqueIdentifier() + "_" + file.toString()
+internal fun Transform.projectGeneratedPackage(file: Path): String =
+    (projectUniqueIdentifier + "_" + file.toString()
+        .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName()
+
+
+internal fun TransformingTask.projectGeneratedPackage(file: Path): String =
+    (projectUniqueIdentifier + "_" + file.toString()
         .toByteArray(StandardCharsets.UTF_8).sha256 + file.fileName).legalizePackageName()
 
 internal fun String.legalizePackageName(): String =

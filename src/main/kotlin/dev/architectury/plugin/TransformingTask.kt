@@ -15,6 +15,8 @@ import dev.architectury.transformer.util.Logger
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
@@ -22,35 +24,49 @@ import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.*
 import java.util.function.BiConsumer
 import kotlin.properties.Delegates
 import kotlin.time.ExperimentalTime
 
 open class TransformingTask : Jar() {
-    @InputFile
+    @get:InputFile
     val input: RegularFileProperty = GradleSupport.getFileProperty(project)
 
-    @Internal
+    @get:Internal
     val transformers: ListProperty<Transformer> = project.objects.listProperty(Transformer::class.java)
 
-    @Internal
-    val postTransformers: ListProperty<ClassEditTransformer> = project.objects.listProperty(ClassEditTransformer::class.java)
+    @get:Internal
+    val postTransformers: ListProperty<ClassEditTransformer> =
+        project.objects.listProperty(ClassEditTransformer::class.java)
 
-    @Internal
+    @get:Internal
     var platform: String? = null
+
+    @get:Input
+    val transformerProperties: MapProperty<String, String> =
+        project.objects.mapProperty(String::class.java, String::class.java)
+
+    @get:Input
+    val transformerLocation: String = project.file(".gradle").absolutePath
+
+    @get:Input
+    internal val projectUniqueIdentifier: String =
+        project.projectUniqueIdentifier()
+
 
     @ExperimentalTime
     @TaskAction
     fun doTask() {
         val input: Path = this.input.asFile.get().toPath()
         val output: Path = this.archiveFile.get().asFile.toPath()
+        Files.copy(input, output, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
 
-        val extension = project.extensions.getByType(ArchitectPluginExtension::class.java)
-        extension.properties(platform ?: throw NullPointerException("No Platform specified")).forEach { (key, value) ->
+        transformerProperties.get().forEach { (key, value) ->
             System.setProperty(key, value)
         }
-        System.setProperty(BuiltinProperties.LOCATION, project.file(".gradle").absolutePath)
+        System.setProperty(BuiltinProperties.LOCATION, transformerLocation)
         Logger.debug("")
         Logger.debug("============================")
         Logger.debug("Transforming from $input to $output")
@@ -58,24 +74,23 @@ open class TransformingTask : Jar() {
         Logger.debug("")
         Transform.runTransformers(input, output, transformers.get())
 
-        if (postTransformers.get().isNotEmpty()) {
-            val postTransformers = postTransformers.get()
-            val apply = { access: OpenedFileAccess ->
-                access.handle({ path: String -> path.endsWith(".class") }) { path: String, bytes: ByteArray ->
-                    val reader = ClassReader(bytes)
-                    if (reader.access and Opcodes.ACC_MODULE == 0) {
-                        var node = ClassNode(Opcodes.ASM9)
-                        reader.accept(node, 0)
-                        postTransformers.forEach { node = it.doEdit(path, node) }
-                        access.modifyFile(path, node.toByteArray())
-                    }
+        val postTransformers = postTransformers.get()
+        if (postTransformers.isEmpty()) return
+        val apply = { access: OpenedFileAccess ->
+            access.handle({ path: String -> path.endsWith(".class") }) { path: String, bytes: ByteArray ->
+                val reader = ClassReader(bytes)
+                if (reader.access and Opcodes.ACC_MODULE == 0) {
+                    var node = ClassNode(Opcodes.ASM9)
+                    reader.accept(node, 0)
+                    postTransformers.forEach { node = it.doEdit(path, node) }
+                    access.modifyFile(path, node.toByteArray())
                 }
             }
-            if (Files.isDirectory(output)) {
-                OpenedFileAccess.ofDirectory(output).use(apply)
-            } else {
-                OpenedFileAccess.ofJar(output).use(apply)
-            }
+        }
+        if (Files.isDirectory(output)) {
+            OpenedFileAccess.ofDirectory(output).use(apply)
+        } else {
+            OpenedFileAccess.ofJar(output).use(apply)
         }
     }
 
@@ -111,9 +126,9 @@ open class TransformingTask : Jar() {
     }
 
     fun add(transformer: Transformer, config: MutableMap<String, Any>.(file: Path) -> Unit) {
-        add(transformer, BiConsumer { file, map ->
+        add(transformer) { file, map ->
             config(map, file)
-        })
+        }
     }
 }
 
@@ -132,5 +147,3 @@ fun Project.projectUniqueIdentifier(): String {
     if (project.rootProject != project) name = project.rootProject.name + "_" + name
     return "architectury_inject_${name}_$id".filter { Character.isJavaIdentifierPart(it) }
 }
-
-class Epic : RuntimeException()

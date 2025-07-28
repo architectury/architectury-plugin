@@ -31,7 +31,6 @@ object GradleSupport {
         return method.invoke(`object`) as RegularFileProperty
     }
 
-    fun isGradle8(project: Project): Boolean {
-        return GradleVersion.current().baseVersion >= GradleVersion.version("8.0")
-    }
 }
+
+internal val gradle8 = GradleVersion.current().baseVersion >= GradleVersion.version("8.0")
