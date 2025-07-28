@@ -14,6 +14,7 @@ import java.io.File
 import java.nio.file.Path
 import java.util.function.Consumer
 
+@Suppress("UnstableApiUsage","unused")
 class LoomInterface011(private val project: Project) : LoomInterface {
     private val extension: LoomGradleExtension
         get() = LoomGradleExtension.get(project)
@@ -26,7 +27,7 @@ class LoomInterface011(private val project: Project) : LoomInterface {
             MixinMappingsService::class.java.getDeclaredMethod("getService", SharedServiceManager::class.java).also {
                 it.isAccessible = true
             }.invoke(null, serviceManager) as MixinMappingsService
-        } catch (ignored: NoSuchMethodException) {
+        } catch (_: NoSuchMethodException) {
             MixinMappingsService::class.java.getDeclaredMethod("getService", SharedServiceManager::class.java, MappingsProviderImpl::class.java).also {
                 it.isAccessible = true
             }.invoke(null, serviceManager, extension.mappingsProvider) as MixinMappingsService
@@ -34,6 +35,7 @@ class LoomInterface011(private val project: Project) : LoomInterface {
     }
 
     private fun extractMixinMappings(service: MixinMappingsService): Collection<File> {
+        @Suppress("UNCHECKED_CAST")
         return MixinMappingsService::class.java.getDeclaredField("mixinMappings").also {
             it.isAccessible = true
         }.get(service) as HashSet<File>
@@ -65,7 +67,7 @@ class LoomInterface011(private val project: Project) : LoomInterface {
 
     override fun setRemapJarInput(task: Jar, archiveFile: Provider<RegularFile>) {
         task as RemapJarTask
-        task.input.set(archiveFile)
+        task.inputFile.set(archiveFile)
     }
 
     class LoomRunConfigImpl(private val config: RunConfig) : LoomInterface.LoomRunConfig {

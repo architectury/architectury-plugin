@@ -11,6 +11,7 @@ import java.io.File
 import java.nio.file.Path
 import java.util.function.Consumer
 
+@Suppress("UnstableApiUsage","unused")
 class LoomInterface06(private val project: Project) : LoomInterface {
     private val extension: LoomGradleExtension
         get() = project.extensions.getByType(LoomGradleExtension::class.java)

@@ -11,6 +11,7 @@ import java.io.File
 import java.nio.file.Path
 import java.util.function.Consumer
 
+@Suppress("UnstableApiUsage", "unused")
 class LoomInterface010(private val project: Project) : LoomInterface {
     private val extension: LoomGradleExtension
         get() = LoomGradleExtension.get(project)
@@ -39,7 +40,7 @@ class LoomInterface010(private val project: Project) : LoomInterface {
     override fun setIdeConfigGenerated() {
         extension.runConfigs.forEach { it.isIdeConfigGenerated = true }
         extension.runConfigs.whenObjectAdded { isIdeConfigGenerated = true }
-        extension.addTaskBeforeRun("\$PROJECT_DIR\$/${project.name}:classes")
+        extension.addTaskBeforeRun("\$PROJECT_DIR$/${project.name}:classes")
     }
 
     override fun setRemapJarInput(task: Jar, archiveFile: Provider<RegularFile>) {

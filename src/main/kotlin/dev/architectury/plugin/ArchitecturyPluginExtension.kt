@@ -1,5 +1,3 @@
-@file:Suppress("UnstableApiUsage")
-
 package dev.architectury.plugin
 
 import dev.architectury.transformer.Transformer
@@ -15,6 +13,7 @@ import java.nio.file.Path
 import java.util.function.BiConsumer
 import java.util.function.Function
 
+@Suppress("unused")
 open class ArchitectPluginExtension(private val projectPath: String, private val projectUniqueIdentifier: String) {
     constructor(project: Project) : this(project.path, project.projectUniqueIdentifier())
 
@@ -222,6 +221,7 @@ data class Transform(
     val extraForgeLikeToNeoForgeRemaps: MutableMap<String, String> = mutableMapOf(),
 ) {
 
+    @Suppress("unused")
     fun remapForgeLike(remap: String, to: String) {
         extraForgeLikeToNeoForgeRemaps[remap] = to
     }

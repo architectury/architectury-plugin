@@ -44,7 +44,7 @@ internal data class AddRefmapName(val enabled: () -> Boolean = { true }) : Asset
         }
         mixins.forEach { path ->
             output.modifyFile(path) {
-                val json: JsonObject = gson.fromJson<JsonObject>(
+                val json = gson.fromJson(
                     ByteArrayInputStream(it).reader(),
                     JsonObject::class.java
                 )
