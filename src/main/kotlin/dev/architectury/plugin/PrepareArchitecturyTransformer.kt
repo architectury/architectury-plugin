@@ -7,20 +7,12 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.CacheableTask
-import org.gradle.api.tasks.CompileClasspath
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
-import org.gradle.api.tasks.Internal
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
 import java.io.File
 import java.io.StringWriter
 import java.util.*
 
 internal abstract class PrepareArchitecturyTransformer : DefaultTask() {
-    @get:Input
-    val compileOnly: Property<Boolean> = project.objects.property(Boolean::class.java)
 
     @get:Internal
     val transforms: ListProperty<Transform> = project.objects.listProperty(Transform::class.java)
@@ -45,7 +37,6 @@ internal abstract class PrepareArchitecturyTransformer : DefaultTask() {
     @TaskAction
     fun run() {
         prepareTransformer(
-            compileOnly.get(),
             transforms.get(),
             fileTransformerProperties.get(),
             forgeLikeDevelopment,
@@ -57,7 +48,6 @@ internal abstract class PrepareArchitecturyTransformer : DefaultTask() {
 }
 
 internal fun prepareTransformer(
-    compileOnly: Boolean,
     transforms: List<Transform>,
     fileTransformerProperties: Map<String, String>,
     forgeLikeDevelopment: Iterable<File>,
@@ -65,32 +55,30 @@ internal fun prepareTransformer(
     propertiesTransformerFile: File,
     runtimeTransformerFile: File,
 ) {
-    if (transforms.isNotEmpty() && !compileOnly) {
-        val strWriter = StringWriter()
-        TransformersWriter(strWriter).use { writer ->
-            for (transform in transforms) {
-                devConfigs[transform.devConfigName]?.forEach { file ->
-                    transform.transformers.map { it.apply(file.toPath()) }
+    val strWriter = StringWriter()
+    TransformersWriter(strWriter).use { writer ->
+        for (transform in transforms) {
+            devConfigs[transform.devConfigName]?.forEach { file ->
+                transform.transformers.map { it.apply(file.toPath()) }
+                    .forEach { pair ->
+                        writer.write(file.toPath(), pair.clazz, pair.properties)
+                    }
+            }
+
+            if (transform.name == "neoforge") {
+                forgeLikeDevelopment.forEach { file ->
+                    (transform.transformers.map { it.apply(file.toPath()) } + ModLoader.applyNeoForgeForgeLikeDev(
+                        transform
+                    ))
                         .forEach { pair ->
                             writer.write(file.toPath(), pair.clazz, pair.properties)
                         }
                 }
-
-                if (transform.name == "neoforge") {
-                    forgeLikeDevelopment.forEach { file ->
-                        (transform.transformers.map { it.apply(file.toPath()) } + ModLoader.applyNeoForgeForgeLikeDev(
-                            transform
-                        ))
-                            .forEach { pair ->
-                                writer.write(file.toPath(), pair.clazz, pair.properties)
-                            }
-                    }
-                }
             }
         }
-
-        runtimeTransformerFile.writeText(strWriter.toString())
     }
+
+    runtimeTransformerFile.writeText(strWriter.toString())
 
 
     val properties = Properties()

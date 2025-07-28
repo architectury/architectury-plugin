@@ -259,8 +259,9 @@ private fun Project.applyPlugin() {
     }
 
     fun prepareTransformersSetup() = with(architectury) {
-        if (compileOnly) return
+        if (compileOnly || transforms.isEmpty()) return
         val devConfigNames = transforms.map { it.value.devConfigName }
+        val forgeLikeConfiguration = configurations.findByName("developmentForgeLike")
         if (loom.generateTransformerPropertiesInTask) {
             // Only apply if this project has the configureLaunch task.
             // This is needed because arch plugin can also apply to the root project
@@ -269,11 +270,10 @@ private fun Project.applyPlugin() {
                 val task = tasks.register(
                     "prepareArchitecturyTransformer", PrepareArchitecturyTransformer::class.java
                 ) {
-                    compileOnly.set(this@with.compileOnly)
                     transforms.set(this@with.transforms.values)
                     fileTransformerProperties.set(properties(this@with.transforms.keys.first()))
                     forgeLikeDevelopment.from(
-                        configurations.findByName("developmentNeoForge")
+                        forgeLikeConfiguration
                     )
                     devConfigs.set(
                         devConfigNames.associateWith { config ->
@@ -288,10 +288,9 @@ private fun Project.applyPlugin() {
             }
         } else {
             prepareTransformer(
-                compileOnly,
                 transforms.values.toList(),
                 properties(transforms.keys.first()),
-                configurations.getByName("developmentNeoForge"),
+                forgeLikeConfiguration ?: emptyList(),
                 devConfigNames.associateWith { config ->
                     configurations.getByName(config)
                 },
