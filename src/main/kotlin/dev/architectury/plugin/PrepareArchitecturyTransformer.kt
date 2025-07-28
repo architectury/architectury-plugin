@@ -7,27 +7,33 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.CompileClasspath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.StringWriter
 import java.util.*
 
+@CacheableTask
 internal abstract class PrepareArchitecturyTransformer : DefaultTask() {
     @get:Input
     val compileOnly: Property<Boolean> = project.objects.property(Boolean::class.java)
+
+    @get:Internal
     val transforms: ListProperty<Transform> = project.objects.listProperty(Transform::class.java)
 
     @get:Input
     val fileTransformerProperties: MapProperty<String, String> =
         project.objects.mapProperty(String::class.java, String::class.java)
 
-    @get:InputFiles
+    @get:CompileClasspath
     val forgeLikeDevelopment: ConfigurableFileCollection = project.objects.fileCollection()
 
-    @get:InputFiles
+    @get:Input
     val devConfigs: MapProperty<String, ConfigurableFileCollection> =
         project.objects.mapProperty(String::class.java, ConfigurableFileCollection::class.java)
 

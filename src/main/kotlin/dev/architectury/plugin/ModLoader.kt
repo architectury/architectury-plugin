@@ -23,13 +23,13 @@ open class ModLoader(
         private fun Transform.commonAction() {
             val transform = this@commonAction
             add(TransformExpectPlatform::class.java) { file ->
-                this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
                 if (transform.platformPackage != null) {
                     this[BuiltinProperties.PLATFORM_PACKAGE] = transform.platformPackage!!
                 }
             }
             add(RemapInjectables::class.java) { file ->
-                this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
             }
             this += TransformPlatformOnly::class.java
         }
@@ -48,13 +48,13 @@ open class ModLoader(
             transformProduction = { _, settings ->
                 this += RemapMixinVariables()
                 add(TransformExpectPlatform()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
                     settings.platformPackages[valueOf("fabric")]?.let { platformPackage ->
                         this[BuiltinProperties.PLATFORM_PACKAGE] = platformPackage
                     }
                 }
                 add(RemapInjectables()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
                 }
                 this += AddRefmapName()
                 this += TransformPlatformOnly()
@@ -74,14 +74,15 @@ open class ModLoader(
             },
             transformProduction = { loom, settings ->
                 add(TransformExpectPlatform()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
                     settings.platformPackages[valueOf("forge")]?.let { platformPackage ->
                         this[BuiltinProperties.PLATFORM_PACKAGE] = platformPackage
                     }
                 }
                 add(RemapInjectables()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(
-                         file)
+                        file
+                    )
                 }
                 this += AddRefmapName { loom.addRefmapForForge }
                 this += TransformPlatformOnly()
@@ -105,13 +106,13 @@ open class ModLoader(
             },
             transformProduction = { _, settings ->
                 add(TransformExpectPlatform()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
                     settings.platformPackages[valueOf("neoforge")]?.let { platformPackage ->
                         this[BuiltinProperties.PLATFORM_PACKAGE] = platformPackage
                     }
                 }
                 add(RemapInjectables()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
                 }
                 this += TransformPlatformOnly()
 
@@ -155,13 +156,13 @@ open class ModLoader(
             transformProduction = { _, settings ->
                 this += RemapMixinVariables()
                 add(TransformExpectPlatform()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
                     settings.platformPackages[valueOf("quilt")]?.let { platformPackage ->
                         this[BuiltinProperties.PLATFORM_PACKAGE] = platformPackage
                     }
                 }
                 add(RemapInjectables()) { file ->
-                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage( file)
+                    this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(file)
                 }
                 this += AddRefmapName()
                 this += TransformPlatformOnly()

@@ -8,7 +8,7 @@ object GradleSupport {
     fun getFileProperty(project: Project): RegularFileProperty {
         return try {
             getFilePropertyModern(project)
-        } catch (var3: Exception) {
+        } catch (_: Exception) {
             try {
                 getFilePropertyLegacy(project)
             } catch (var2: Exception) {
