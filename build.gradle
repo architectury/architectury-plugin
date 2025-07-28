@@ -1,11 +1,17 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "1.6.10"
+    id "org.jetbrains.kotlin.jvm" version "1.9.25"
     id "java"
     id "idea"
     id "eclipse"
     id "maven-publish"
+    id("org.jetbrains.kotlin.plugin.sam.with.receiver") version "1.9.25"
+
+}
+
+samWithReceiver {
+    annotation('org.gradle.api.HasImplicitReceiver')
 }
 
 group "me.shedaniel"
@@ -107,7 +113,7 @@ dependencies {
 tasks.withType(KotlinCompile) {
     kotlinOptions {
         jvmTarget = "1.8"
-        freeCompilerArgs = ['-Xjvm-default=compatibility']
+        freeCompilerArgs = ['-Xjvm-default=all']
     }
 }
 

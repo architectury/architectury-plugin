@@ -6,10 +6,8 @@ import dev.architectury.plugin.utils.gradle8
 import dev.architectury.transformer.input.OpenedFileAccess
 import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.util.LoggerFilter
-import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaPlugin
@@ -19,8 +17,6 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.jetbrains.gradle.ext.ActionDelegationConfig
 import java.io.File
 import java.net.URI
-import java.util.jar.JarOutputStream
-import java.util.jar.Manifest
 
 class ArchitecturyPlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -35,14 +31,14 @@ class ArchitecturyPlugin : Plugin<Project> {
 
         LoggerFilter.replaceSystemOut()
 
-        project.apply(
-            mapOf(
-                "plugin" to "java",
-                "plugin" to "eclipse",
-                "plugin" to "idea",
-                "plugin" to "org.jetbrains.gradle.plugin.idea-ext"
-            )
-        )
+        listOf(
+            "java",
+            "eclipse",
+            "idea",
+            "org.jetbrains.gradle.plugin.idea-ext"
+        ).forEach {
+            project.pluginManager.apply(it)
+        }
 
         project.afterEvaluate {
             val ideaModel = project.extensions.getByName("idea") as IdeaModel
@@ -117,12 +113,12 @@ class ArchitecturyPlugin : Plugin<Project> {
                     var plsAddInjectables = false
                     project.configurations.findByName("architecturyTransformerClasspath")
                         ?: project.configurations.create("architecturyTransformerClasspath") {
-                            it.extendsFrom(project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME))
+                            extendsFrom(project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME))
                             plsAddInjectables = true
                         }
                     val architecturyJavaAgents = project.configurations.create("architecturyJavaAgents") {
                         project.configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME)
-                            .extendsFrom(it)
+                            .extendsFrom(this)
                     }
                     transformedLoom = true
 
@@ -134,7 +130,7 @@ class ArchitecturyPlugin : Plugin<Project> {
                                 project.configurations.findByName("architecturyTransformerRuntimeClasspath")
                                     ?: project.configurations.create("architecturyTransformerRuntimeClasspath") {
                                         project.configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME)
-                                            .extendsFrom(it)
+                                            .extendsFrom(this)
                                     }
                             add(
                                 customRuntimeClasspath.name,
@@ -188,11 +184,13 @@ class ArchitecturyPlugin : Plugin<Project> {
         }
 
         with(architectury) {
+            val settings = settings
+            if (settings == null) return@with
             if (injectInjectables && !compileOnly) {
                 var plsAddInjectables = false
                 project.configurations.findByName("architecturyTransformerClasspath")
                     ?: project.configurations.create("architecturyTransformerClasspath") {
-                        it.extendsFrom(project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME))
+                        extendsFrom(project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME))
                         plsAddInjectables = true
                     }
 
@@ -217,60 +215,55 @@ class ArchitecturyPlugin : Plugin<Project> {
 
             val buildTask = project.tasks.getByName("build")
             val jarTask = project.tasks.getByName("jar") {
-                it as AbstractArchiveTask
-                it.archiveClassifier.set("dev")
+                this as AbstractArchiveTask
+                archiveClassifier.set("dev")
             } as AbstractArchiveTask
 
-            val settings = settings
-            if (settings != null)
-                for (loader in settings.loaders) {
-                    project.configurations.maybeCreate("transformProduction${loader.titledId}")
-                    project.tasks.register("transformProduction${loader.titledId}", TransformingTask::class.java) {
-                        it.group = "Architectury"
-                        it.platform = loader.id
-                        it.transformerProperties.set(properties(loader.id))
-                        loader.transformProduction(it, loom, settings)
+            for (loader in settings.loaders) {
+                project.configurations.maybeCreate("transformProduction${loader.titledId}")
+                project.tasks.register("transformProduction${loader.titledId}", TransformingTask::class.java) {
+                    group = "Architectury"
+                    platform = loader.id
+                    transformerProperties.set(properties(loader.id))
+                    loader.transformProduction(this, loom, settings)
 
-                        if (settings.isForgeLike && loader.id == "neoforge") {
-                            it.addPost(applyNeoForgeForgeLikeProd(settings))
-                        }
-
-                        it.archiveClassifier.set("transformProduction${loader.titledId}")
-                        it.input.set(jarTask.archiveFile)
-
-                        project.artifacts.add("transformProduction${loader.titledId}", it)
-                        it.dependsOn(jarTask)
-                        buildTask.dependsOn(it)
+                    if (settings.isForgeLike && loader.id == "neoforge") {
+                        addPost(applyNeoForgeForgeLikeProd(settings))
                     }
+
+                    archiveClassifier.set("transformProduction${loader.titledId}")
+                    input.set(jarTask.archiveFile)
+
+                    project.artifacts.add("transformProduction${loader.titledId}", this)
+                    dependsOn(jarTask)
+                    buildTask.dependsOn(this)
                 }
 
-            project.tasks.getByName("remapJar") {
-                it as Jar
+                project.tasks.getByName("remapJar") {
+                    this as Jar
 
-                it.archiveClassifier.set("")
-                loom.setRemapJarInput(it, jarTask.archiveFile)
-                it.dependsOn(jarTask)
-                it.doLast(object : Action<Task> {
-                    override fun execute(task: Task) {
+                    archiveClassifier.set("")
+                    loom.setRemapJarInput(this, jarTask.archiveFile)
+                    dependsOn(jarTask)
+                    doLast {
                         if (addCommonMarker) {
-                            val output = it.archiveFile.get().asFile
+                            val output = archiveFile.get().asFile
 
                             try {
                                 OpenedFileAccess.ofJar(output.toPath()).use { inter ->
-                                    inter.addFile("architectury.common.marker", "")
+                                    inter.addFile("archctury.common.marker", "")
                                 }
                             } catch (_: Throwable) {
-                                it.logger.warn("Failed to add architectury.common.marker to ${output.absolutePath}")
+                                logger.warn("Failed to add architectury.common.marker to ${output.absolutePath}")
                             }
                         }
                     }
-                })
-            } as Jar
-        }
+                }
+            }
 
-        with(architectury) {
             project.afterEvaluate {
                 if (compileOnly) return@afterEvaluate
+                val devConfigNames = transforms.map { it.value.devConfigName }
                 if (loom.generateTransformerPropertiesInTask) {
                     // Only apply if this project has the configureLaunch task.
                     // This is needed because arch plugin can also apply to the root project
@@ -279,9 +272,24 @@ class ArchitecturyPlugin : Plugin<Project> {
                         val task = project.tasks.register(
                             "prepareArchitecturyTransformer",
                             PrepareArchitecturyTransformer::class.java
-                        )
+                        ) {
+                            compileOnly.set(compileOnly)
+                            transforms.set(this@with.transforms.values)
+                            fileTransformerProperties.set(properties(this@with.transforms.keys.first()))
+                            forgeLikeDevelopment.from(
+                                project.configurations.getByName("developmentNeoForge")
+                            )
+                            devConfigs.set(
+                                devConfigNames.associateWith { config ->
+                                    project.objects.fileCollection()
+                                        .from(project.configurations.getByName(config))
+                                }
+                            )
+                            this.runtimeTransformerFile.set(runtimeTransformerFile)
+                            this.propertiesTransformerFile.set(propertiesTransformerFile)
+                        }
                         project.tasks.named("configureLaunch") {
-                            it.dependsOn(task)
+                            dependsOn(task)
                         }
                     }
                 } else {
@@ -289,28 +297,26 @@ class ArchitecturyPlugin : Plugin<Project> {
                     prepareTransformer(
                         compileOnly, transforms.values.toList(), properties(transforms.keys.first()),
                         project.configurations.getByName("developmentNeoForge"),
-                        mapOf("" to project.configurations.getByName("developmentNeoForge")),
+                        devConfigNames.associateWith { config ->
+                            project.configurations.getByName(config)
+                        },
                         propertiesTransformerFile, runtimeTransformerFile
                     )
                 }
+
             }
 
-        }
-
-        project.repositories.apply {
-            mavenCentral()
-            maven { it.url = URI("https://maven.architectury.dev/") }
+            project.repositories.apply {
+                mavenCentral()
+                maven { url = URI("https://maven.architectury.dev/") }
+            }
         }
     }
+
 }
 
 private fun Project.getCompileClasspath(): Iterable<File> {
     return configurations.findByName("architecturyTransformerClasspath")
         ?: configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)
-}
-
-private fun File.createEmptyJar() {
-    parentFile.mkdirs()
-    JarOutputStream(outputStream(), Manifest()).close()
 }
 

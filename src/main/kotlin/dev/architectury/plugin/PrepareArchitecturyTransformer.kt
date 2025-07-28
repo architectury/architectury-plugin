@@ -2,14 +2,13 @@ package dev.architectury.plugin
 
 import dev.architectury.transformer.transformers.properties.TransformersWriter
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
@@ -25,8 +24,10 @@ internal abstract class PrepareArchitecturyTransformer : DefaultTask() {
     val fileTransformerProperties: MapProperty<String, String> =
         project.objects.mapProperty(String::class.java, String::class.java)
 
-    @get:InputArtifact
+    @get:InputFiles
     val forgeLikeDevelopment: ConfigurableFileCollection = project.objects.fileCollection()
+
+    @get:InputFiles
     val devConfigs: MapProperty<String, ConfigurableFileCollection> =
         project.objects.mapProperty(String::class.java, ConfigurableFileCollection::class.java)
 
@@ -54,8 +55,8 @@ internal fun prepareTransformer(
     compileOnly: Boolean,
     transforms: List<Transform>,
     fileTransformerProperties: Map<String, String>,
-    forgeLikeDevelopment: FileCollection,
-    devConfigs: Map<String, FileCollection>,
+    forgeLikeDevelopment: Iterable<File>,
+    devConfigs: Map<String, Iterable<File>>,
     propertiesTransformerFile: File,
     runtimeTransformerFile: File,
 ) {

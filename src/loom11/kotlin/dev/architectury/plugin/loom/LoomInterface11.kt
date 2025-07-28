@@ -66,13 +66,13 @@ class LoomInterface11(private val project: Project) : LoomInterface {
 
     override fun setIdeConfigGenerated() {
         extension.runConfigs.forEach { it.isIdeConfigGenerated = true }
-        extension.runConfigs.whenObjectAdded { it.isIdeConfigGenerated = true }
-        extension.addTaskBeforeRun("\$PROJECT_DIR\$/${project.name}:classes")
+        extension.runConfigs.whenObjectAdded { isIdeConfigGenerated = true }
+        extension.addTaskBeforeRun("\$PROJECT_DIR$/${project.name}:classes")
     }
 
     override fun setRemapJarInput(task: Jar, archiveFile: Provider<RegularFile>) {
         task as RemapJarTask
-        task.input.set(archiveFile)
+        task.inputFile.set(archiveFile)
     }
 
     class LoomRunConfigImpl(private val config: RunConfig) : LoomInterface.LoomRunConfig {

@@ -2,14 +2,23 @@
 
 package dev.architectury.plugin
 
+import dev.architectury.plugin.ModLoader.Companion.applyNeoForgeForgeLikeProd
+import dev.architectury.plugin.utils.gradle8
 import dev.architectury.transformer.Transformer
+import dev.architectury.transformer.input.OpenedFileAccess
 import dev.architectury.transformer.shadowed.impl.com.google.common.hash.Hashing
 import dev.architectury.transformer.shadowed.impl.com.google.gson.Gson
 import dev.architectury.transformer.shadowed.impl.com.google.gson.JsonObject
 import dev.architectury.transformer.util.TransformerPair
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.logging.Logging
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
+import org.gradle.jvm.tasks.Jar
+import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.function.BiConsumer
@@ -78,9 +87,9 @@ open class ArchitectPluginExtension(private val projectPath: String, private val
     fun loader(loader: ModLoader, action: Action<Transform> = Action {}) {
         transform(loader.id) {
             if (!compileOnly) {
-                loader.transformDevelopment(it)
+                loader.transformDevelopment(this)
             }
-            action.execute(it)
+            action.execute(this)
         }
     }
 
@@ -165,7 +174,7 @@ open class ArchitectPluginExtension(private val projectPath: String, private val
     }
 
     fun common(action: CommonSettings.() -> Unit) {
-        common(Action { it.action() })
+        common(Action { action() })
     }
 
     @JvmOverloads
@@ -205,8 +214,8 @@ open class ArchitectPluginExtension(private val projectPath: String, private val
     @JvmOverloads
     fun forgeLike(platforms: Iterable<String>, action: CommonSettings.() -> Unit = {}) {
         forgeLike {
-            it.add(platforms)
-            action(it)
+            add(platforms)
+            action()
         }
     }
 }
