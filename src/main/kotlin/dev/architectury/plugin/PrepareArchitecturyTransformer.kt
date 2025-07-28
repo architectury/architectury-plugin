@@ -18,7 +18,6 @@ import java.io.File
 import java.io.StringWriter
 import java.util.*
 
-@CacheableTask
 internal abstract class PrepareArchitecturyTransformer : DefaultTask() {
     @get:Input
     val compileOnly: Property<Boolean> = project.objects.property(Boolean::class.java)
