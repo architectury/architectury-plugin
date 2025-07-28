@@ -17,10 +17,6 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.jetbrains.gradle.ext.ActionDelegationConfig
 import java.io.File
 import java.net.URI
-import java.util.ArrayList
-import java.util.stream.Collectors
-import java.util.stream.Stream
-import kotlin.streams.toList
 
 internal class ArchitecturyPlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -41,7 +37,7 @@ private fun Project.applyPlugin() {
     LoggerFilter.replaceSystemOut()
 
     listOf(
-        "java", "eclipse", "idea", "org.jetbrains.gradle.plugin.idea-ext"
+        "java", "eclipse", "idea", "org.jetbrains.gradle.plugin.idea-ext",
     ).forEach {
         pluginManager.apply(it)
     }
