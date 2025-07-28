@@ -17,8 +17,12 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.jetbrains.gradle.ext.ActionDelegationConfig
 import java.io.File
 import java.net.URI
+import java.util.ArrayList
+import java.util.stream.Collectors
+import java.util.stream.Stream
+import kotlin.streams.toList
 
-class ArchitecturyPlugin : Plugin<Project> {
+internal class ArchitecturyPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         project.applyPlugin()
     }

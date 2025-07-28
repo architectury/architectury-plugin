@@ -4,7 +4,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.util.GradleVersion
 
-object GradleSupport {
+internal object GradleSupport {
     fun getFileProperty(project: Project): RegularFileProperty {
         return try {
             getFilePropertyModern(project)

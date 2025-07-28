@@ -20,7 +20,7 @@ interface LoomInterface {
                 return try {
                     Class.forName(className)
                     use(interfaceName)
-                } catch (ignored: ClassNotFoundException) {
+                } catch (_: ClassNotFoundException) {
                     null
                 }
             }

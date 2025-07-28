@@ -1,5 +1,6 @@
 package dev.architectury.plugin.transformers
 
+import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import dev.architectury.transformer.Transform
@@ -10,8 +11,8 @@ import dev.architectury.transformer.transformers.base.edit.TransformerContext
 import dev.architectury.transformer.util.Logger
 import java.io.ByteArrayInputStream
 
-data class AddRefmapName(val enabled: () -> Boolean = { true }) : AssetEditTransformer {
-    val gson = GsonBuilder().setPrettyPrinting().create()
+internal data class AddRefmapName(val enabled: () -> Boolean = { true }) : AssetEditTransformer {
+    val gson: Gson = GsonBuilder().setPrettyPrinting().create()
     override fun doEdit(context: TransformerContext, output: FileAccess) {
         if (!enabled()) return
         val refmap = System.getProperty(BuiltinProperties.REFMAP_NAME) ?: return
