@@ -23,7 +23,7 @@ open class ArchitectPluginExtension(private val projectPath: String, private val
     var injectInjectables = true
     var addCommonMarker = true
     internal var compileOnly = false
-    internal val transforms = mutableMapOf<String, Transform>()
+    internal var transform: Transform? = null
     internal var platformSetupLoomIde = false
     internal var settings: CommonSettings? = null
     internal var transformedLoom = false
@@ -42,7 +42,10 @@ open class ArchitectPluginExtension(private val projectPath: String, private val
 
 
     fun transform(name: String, action: Action<Transform>) {
-        transforms.getOrPut(name) {
+        if (transform != null) {
+            throw IllegalStateException("transform() can only be called once for project ${projectPath}! Current platform: ${transform?.name}, requested platform: $name")
+        }
+        transform =
             Transform(
                 projectUniqueIdentifier,
                 name,
@@ -50,7 +53,7 @@ open class ArchitectPluginExtension(private val projectPath: String, private val
             ).also { transform ->
                 action.execute(transform)
             }
-        }
+
     }
 
     @JvmOverloads

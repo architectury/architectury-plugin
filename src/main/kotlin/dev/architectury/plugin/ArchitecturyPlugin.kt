@@ -13,6 +13,7 @@ import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.jvm.tasks.Jar
+import org.gradle.kotlin.dsl.dependencies
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.jetbrains.gradle.ext.ActionDelegationConfig
 import java.io.File
@@ -94,8 +95,8 @@ private fun Project.applyPlugin() {
     }
 
 
-    fun configurationsSetup() = with(architectury) {
-        transforms.forEach { name, transform ->
+    fun configurationsSetup(): Unit = with(architectury) {
+        transform?.let { transform ->
             if (!compileOnly) {
                 configurations.maybeCreate(transform.devConfigName)
 
@@ -116,7 +117,7 @@ private fun Project.applyPlugin() {
                 }
                 transformedLoom = true
 
-                with(dependencies) {
+                dependencies {
                     // We are trying to not leak to consumers that we are using architectury-transformer
                     // We use compileOnly on Gradle 8+, I am not sure of the consequences of using compileOnly on Gradle 7
                     if (gradle8) {
@@ -259,8 +260,8 @@ private fun Project.applyPlugin() {
     }
 
     fun prepareTransformersSetup() = with(architectury) {
-        if (compileOnly || transforms.isEmpty()) return
-        val devConfigNames = transforms.map { it.value.devConfigName }
+        val transform = this.transform ?: return@with
+        if (compileOnly) return
         val forgeLikeConfiguration = configurations.findByName("developmentForgeLike")
         if (loom.generateTransformerPropertiesInTask) {
             // Only apply if this project has the configureLaunch task.
@@ -270,15 +271,12 @@ private fun Project.applyPlugin() {
                 val task = tasks.register(
                     "prepareArchitecturyTransformer", PrepareArchitecturyTransformer::class.java
                 ) {
-                    transforms.set(this@with.transforms.values)
-                    fileTransformerProperties.set(properties(this@with.transforms.keys.first()))
-                    forgeLikeDevelopment.from(
+                    this.transform.set(transform)
+                    fileTransformerProperties.set(properties(transform.name))
+                    forgeLikeDevelopmentConfiguration.from(
                         forgeLikeConfiguration
                     )
-                    devConfigs.set(
-                        devConfigNames.associateWith { config ->
-                            objects.fileCollection().from(configurations.findByName(config))
-                        })
+                    developmentConfiguration.from(configurations.getByName(transform.devConfigName))
                     this.runtimeTransformerFile.set(runtimeTransformerFile)
                     this.propertiesTransformerFile.set(propertiesTransformerFile)
                 }
@@ -288,18 +286,17 @@ private fun Project.applyPlugin() {
             }
         } else {
             prepareTransformer(
-                transforms.values.toList(),
-                properties(transforms.keys.first()),
+                transform,
+                properties(transform.name),
                 forgeLikeConfiguration ?: emptyList(),
-                devConfigNames.associateWith { config ->
-                    configurations.getByName(config)
-                },
+                configurations.getByName(transform.devConfigName),
                 propertiesTransformerFile,
                 runtimeTransformerFile
             )
         }
 
     }
+
 
     afterEvaluate {
         if (architectury.platformSetupLoomIde) {
@@ -316,7 +313,6 @@ private fun Project.applyPlugin() {
     }
 
 }
-
 
 private fun Project.getCompileClasspath(): Iterable<File> {
     return configurations.findByName("architecturyTransformerClasspath")
