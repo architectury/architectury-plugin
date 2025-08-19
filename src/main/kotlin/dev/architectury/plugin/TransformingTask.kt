@@ -13,8 +13,12 @@ import dev.architectury.transformer.transformers.BuiltinProperties
 import dev.architectury.transformer.transformers.base.ClassEditTransformer
 import dev.architectury.transformer.util.Logger
 import org.gradle.api.Project
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
@@ -25,7 +29,6 @@ import java.nio.file.Path
 import java.util.*
 import java.util.function.BiConsumer
 import kotlin.properties.Delegates
-import kotlin.time.ExperimentalTime
 
 open class TransformingTask : Jar() {
     @InputFile
@@ -37,20 +40,38 @@ open class TransformingTask : Jar() {
     @Internal
     val postTransformers: ListProperty<ClassEditTransformer> = project.objects.listProperty(ClassEditTransformer::class.java)
 
-    @Internal
-    var platform: String? = null
+    // TODO: Replace completely with a property
+    var platform: String?
+        @Internal
+        get() = platformProperty.orNull
+        set(value) = platformProperty.set(value)
 
-    @ExperimentalTime
+    @Input
+    protected val platformProperty: Property<String> = project.objects.property(String::class.java)
+
+    @Input
+    val properties: MapProperty<String, String> = project.objects.mapProperty(String::class.java, String::class.java)
+
+    @Internal
+    val transformerLocation: DirectoryProperty = project.objects.directoryProperty()
+
+    init {
+        properties.set(platformProperty.map { platform ->
+            val extension = project.extensions.getByType(ArchitectPluginExtension::class.java)
+            extension.properties(platform)
+        })
+        transformerLocation.set(project.file(".gradle"))
+    }
+
     @TaskAction
     fun doTask() {
         val input: Path = this.input.asFile.get().toPath()
         val output: Path = this.archiveFile.get().asFile.toPath()
 
-        val extension = project.extensions.getByType(ArchitectPluginExtension::class.java)
-        extension.properties(platform ?: throw NullPointerException("No Platform specified")).forEach { (key, value) ->
+        for ((key, value) in properties.get()) {
             System.setProperty(key, value)
         }
-        System.setProperty(BuiltinProperties.LOCATION, project.file(".gradle").absolutePath)
+        System.setProperty(BuiltinProperties.LOCATION, transformerLocation.get().asFile.absolutePath)
         Logger.debug("")
         Logger.debug("============================")
         Logger.debug("Transforming from $input to $output")
@@ -132,5 +153,3 @@ fun Project.projectUniqueIdentifier(): String {
     if (project.rootProject != project) name = project.rootProject.name + "_" + name
     return "architectury_inject_${name}_$id".filter { Character.isJavaIdentifierPart(it) }
 }
-
-class Epic : RuntimeException()
