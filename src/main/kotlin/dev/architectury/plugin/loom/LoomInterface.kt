@@ -26,6 +26,9 @@ interface LoomInterface {
             }
 
             return useIfFound(
+                "net.fabricmc.loom.util.service.ServiceType",
+                "dev.architectury.plugin.loom.LoomInterface114" // 1.14
+            ) ?: useIfFound(
                 "net.fabricmc.loom.util.service.ScopedServiceFactory",
                 "dev.architectury.plugin.loom.LoomInterface11" // 1.8
             ) ?: useIfFound(
@@ -48,11 +51,12 @@ interface LoomInterface {
     }
 
     val allMixinMappings: Collection<File>
-    val tinyMappingsWithSrg: Path
+    val tinyMappingsWithSrg: Path?
     val refmapName: String
     var generateSrgTiny: Boolean
     val legacyMixinApEnabled: Boolean get() = false
     val addRefmapForForge: Boolean get() = true
+    val disableObfuscation: Boolean get() = false
 
     /**
      * Loom 0.11+ has to generate the runtime transformer properties file

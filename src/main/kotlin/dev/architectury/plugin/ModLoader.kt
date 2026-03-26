@@ -41,8 +41,8 @@ open class ModLoader(
                 }
                 this += TransformPlatformOnly::class.java
             },
-            transformProduction = { _, settings ->
-                this += RemapMixinVariables()
+            transformProduction = { loom, settings ->
+                if (!loom.disableObfuscation) this += RemapMixinVariables()
                 add(TransformExpectPlatform()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                     settings.platformPackages[valueOf("fabric")]?.let { platformPackage ->
@@ -170,8 +170,8 @@ open class ModLoader(
                 this += TransformPlatformOnly::class.java
                 envAnnotationProvider = "org.quiltmc:quilt-loader:+"
             },
-            transformProduction = { _, settings ->
-                this += RemapMixinVariables()
+            transformProduction = { loom, settings ->
+                if (!loom.disableObfuscation) this += RemapMixinVariables()
                 add(TransformExpectPlatform()) { file ->
                     this[BuiltinProperties.UNIQUE_IDENTIFIER] = projectGeneratedPackage(project, file)
                     settings.platformPackages[valueOf("quilt")]?.let { platformPackage ->
