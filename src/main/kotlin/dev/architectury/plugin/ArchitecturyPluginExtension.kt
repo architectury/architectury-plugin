@@ -29,6 +29,7 @@ import java.util.function.BiConsumer
 import java.util.function.Function
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
+import kotlin.io.path.exists
 
 open class ArchitectPluginExtension(val project: Project) {
     var transformerVersion = "5.2.91"
@@ -115,12 +116,14 @@ open class ArchitectPluginExtension(val project: Project) {
             }
 
             if (!loom.disableObfuscation) {
-                map[BuiltinProperties.MAPPINGS_WITH_SRG] = loom.tinyMappingsWithSrg.toString()
+                var tinyMappingsWithSrg = loom.tinyMappingsWithSrg
+                if (tinyMappingsWithSrg != null && tinyMappingsWithSrg.exists()) map[BuiltinProperties.MAPPINGS_WITH_SRG] = loom.tinyMappingsWithSrg.toString()
             }
         }
 
         if (!loom.disableObfuscation) {
-            map[BuiltinProperties.MIXIN_MAPPINGS] = loom.allMixinMappings.joinToString(File.pathSeparator)
+            var allMixinMappings = loom.allMixinMappings;
+            if (allMixinMappings.isNotEmpty()) map[BuiltinProperties.MIXIN_MAPPINGS] = allMixinMappings.joinToString(File.pathSeparator)
         }
 
         return map
