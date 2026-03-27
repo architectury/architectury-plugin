@@ -26,7 +26,7 @@ interface LoomInterface {
             }
 
             return useIfFound(
-                "net.fabricmc.loom.util.service.ServiceType",
+                "net.fabricmc.loom.LoomNoRemapGradlePlugin",
                 "dev.architectury.plugin.loom.LoomInterface114" // 1.14
             ) ?: useIfFound(
                 "net.fabricmc.loom.util.service.ScopedServiceFactory",
