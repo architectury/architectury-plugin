@@ -23,7 +23,7 @@ class LoomInterface114(private val project: Project) : LoomInterface {
             val files = mutableListOf<File>()
             GradleUtils.allLoomProjects(project.gradle) { project: Project ->
                 val extension = LoomGradleExtension.get(project)
-                if (!this.extension.mappingConfiguration.mappingsIdentifier.equals(extension.mappingConfiguration.mappingsIdentifier)) {
+                if (extension.disableObfuscation() || !this.extension.mappingConfiguration.mappingsIdentifier.equals(extension.mappingConfiguration.mappingsIdentifier)) {
                     // Only find mixin mappings that are from other projects with the same mapping id.
                     return@allLoomProjects
                 }
