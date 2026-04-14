@@ -100,7 +100,6 @@ open class ArchitectPluginExtension(val project: Project) {
 
     fun properties(platform: String): Map<String, String> {
         val map = mutableMapOf(
-            BuiltinProperties.MIXIN_MAPPINGS to loom.allMixinMappings.joinToString(File.pathSeparator),
             BuiltinProperties.INJECT_INJECTABLES to injectInjectables.toString(),
             BuiltinProperties.UNIQUE_IDENTIFIER to project.projectUniqueIdentifier(),
             BuiltinProperties.COMPILE_CLASSPATH to getCompileClasspath().joinToString(File.pathSeparator),
@@ -115,7 +114,13 @@ open class ArchitectPluginExtension(val project: Project) {
                 map[BuiltinProperties.REFMAP_NAME] = loom.refmapName
             }
 
-            map[BuiltinProperties.MAPPINGS_WITH_SRG] = loom.tinyMappingsWithSrg.toString()
+            if (!loom.disableObfuscation) {
+                map[BuiltinProperties.MAPPINGS_WITH_SRG] = loom.tinyMappingsWithSrg.toString()
+            }
+        }
+
+        if (!loom.disableObfuscation) {
+            map[BuiltinProperties.MIXIN_MAPPINGS] = loom.allMixinMappings.joinToString(File.pathSeparator)
         }
 
         return map
@@ -442,7 +447,7 @@ open class ArchitectPluginExtension(val project: Project) {
             transformProductionTask.get().archiveFile.get().asFile.takeUnless { it.exists() }?.createEmptyJar()
         }
 
-        val remapJarTask = project.tasks.getByName("remapJar") {
+        project.tasks.findByName("remapJar")?.also {
             it as Jar
 
             it.archiveClassifier.set("")
@@ -464,7 +469,7 @@ open class ArchitectPluginExtension(val project: Project) {
                     }
                 }
             })
-        } as Jar
+        }
     }
 
     fun forgeLike(action: Action<CommonSettings>) {
