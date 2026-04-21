@@ -3,7 +3,7 @@ Talk to us on [Discord](https://discord.gg/C2RdJDpRBP)!
 
 Architectury Plugin is a gradle plugin to allow easier multi-modloader set-ups using a common module.
 
-More documentation: [Architectury Wiki](https://architectury.github.io/architectury-documentations/docs/architectury_plugin/)
+More documentation: [Architectury Wiki](https://docs.architectury.dev/plugin/introduction)
 
 ### Example Mod
 - [Architectury Example Mod](https://github.com/architectury/architectury-example-mod)
@@ -18,7 +18,7 @@ _Notes: Only works for static methods._
 ### IntelliJ Plugin
 https://plugins.jetbrains.com/plugin/16210-architectury
 
-### How does it work
+### How it works
 Fabric Side:
 
 - Module `fabric` depends on a transformed version of `common`, which is shaded afterwards
