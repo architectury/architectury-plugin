@@ -26,6 +26,9 @@ interface LoomInterface {
             }
 
             return useIfFound(
+                "net.fabricmc.loom.api.RunConfiguration",
+                "dev.architectury.plugin.loom.LoomInterface117" // 1.17
+            ) ?: useIfFound(
                 "net.fabricmc.loom.util.service.ServiceType",
                 "dev.architectury.plugin.loom.LoomInterface114" // 1.14
             ) ?: useIfFound(
