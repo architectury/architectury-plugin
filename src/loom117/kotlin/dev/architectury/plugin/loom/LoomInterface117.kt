@@ -21,14 +21,20 @@ class LoomInterface117(private val project: Project) : LoomInterface {
     override val allMixinMappings: Collection<File>
         get() {
             val files = mutableListOf<File>()
-            GradleUtils.allLoomProjects(project.gradle) { project: Project ->
-                val extension = LoomGradleExtension.get(project)
-                if (!this.extension.mappingConfiguration.mappingsIdentifier.equals(extension.mappingConfiguration.mappingsIdentifier)) {
-                    // Only find mixin mappings that are from other projects with the same mapping id.
+            GradleUtils.allLoomProjects(project.gradle) { proj: Project ->
+                val ext = LoomGradleExtension.get(proj)
+
+                if (this.extension.disableObfuscation() != ext.disableObfuscation()) {
                     return@allLoomProjects
                 }
-                for (sourceSet in SourceSetHelper.getSourceSets(project)) {
-                    val mixinMappings: File = AnnotationProcessorInvoker.getMixinMappingsForSourceSet(project, sourceSet)
+                if (!this.extension.disableObfuscation()) {
+                    if (!this.extension.mappingConfiguration.mappingsIdentifier.equals(ext.mappingConfiguration.mappingsIdentifier)) {
+                        return@allLoomProjects
+                    }
+                }
+
+                for (sourceSet in SourceSetHelper.getSourceSets(proj)) {
+                    val mixinMappings: File = AnnotationProcessorInvoker.getMixinMappingsForSourceSet(proj, sourceSet)
                     if (!mixinMappings.exists()) {
                         continue
                     }
