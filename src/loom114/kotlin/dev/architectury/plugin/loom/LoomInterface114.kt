@@ -21,14 +21,20 @@ class LoomInterface114(private val project: Project) : LoomInterface {
     override val allMixinMappings: Collection<File>
         get() {
             val files = mutableListOf<File>()
-            GradleUtils.allLoomProjects(project.gradle) { project: Project ->
-                val extension = LoomGradleExtension.get(project)
-                if (!this.extension.mappingConfiguration.mappingsIdentifier.equals(extension.mappingConfiguration.mappingsIdentifier)) {
-                    // Only find mixin mappings that are from other projects with the same mapping id.
+            GradleUtils.allLoomProjects(project.gradle) { proj: Project ->
+                val ext = LoomGradleExtension.get(proj)
+
+                if (this.extension.disableObfuscation() != ext.disableObfuscation()) {
                     return@allLoomProjects
                 }
-                for (sourceSet in SourceSetHelper.getSourceSets(project)) {
-                    val mixinMappings: File = AnnotationProcessorInvoker.getMixinMappingsForSourceSet(project, sourceSet)
+                if (!this.extension.disableObfuscation()) {
+                    if (!this.extension.mappingConfiguration.mappingsIdentifier.equals(ext.mappingConfiguration.mappingsIdentifier)) {
+                        return@allLoomProjects
+                    }
+                }
+
+                for (sourceSet in SourceSetHelper.getSourceSets(proj)) {
+                    val mixinMappings: File = AnnotationProcessorInvoker.getMixinMappingsForSourceSet(proj, sourceSet)
                     if (!mixinMappings.exists()) {
                         continue
                     }
@@ -52,8 +58,8 @@ class LoomInterface114(private val project: Project) : LoomInterface {
 
     override val legacyMixinApEnabled: Boolean
         get() = extension.mixin.useLegacyMixinAp.get()
-    
-    
+
+
     override val addRefmapForForge: Boolean
         // Awful hack to check if the version >= 1.20.5, we don't get any info of forge version in common
         get() = !extension.minecraftProvider.versionInfo.isVersionOrNewer("2024-04-23T00:00:00+00:00")
