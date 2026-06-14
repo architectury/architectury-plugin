@@ -86,9 +86,9 @@ class LoomInterface117(private val project: Project) : LoomInterface {
 
     class LoomRunConfigImpl(private val config: RunConfiguration) : LoomInterface.LoomRunConfig {
         override var mainClass: String
-            get() = config.mainClass.get()
+            get() = config.devLaunchMainClass.get()
             set(value) {
-                config.mainClass.set(value)
+                config.devLaunchMainClass.set(value)
             }
 
         override fun addVmArg(vmArg: String) {
